@@ -106,14 +106,19 @@ else
 fi
 
 # rsync all committed files from the Git repo to SVN
-rsync -avz --delete --delete-excluded --exclude 'assets' --exclude '.git*' --exclude 'dev-lib' --exclude '.jshint*' --exclude 'svn-url' --exclude '.travis.yml' $git_tmp_repo_dir/ $svn_tmp_repo_dir/trunk/
+rsync -avz --delete --delete-excluded --exclude '.git*' --exclude 'dev-lib' --exclude '.jshint*' --exclude 'svn-url' --exclude '.travis.yml' $git_tmp_repo_dir/ $svn_tmp_repo_dir/trunk/
 if [ -e $git_tmp_repo_dir/assets/ ]; then
 	mkdir -p $svn_tmp_repo_dir/assets/
 	rsync -avz --delete $git_tmp_repo_dir/assets/ $svn_tmp_repo_dir/assets/
+	rm -rf $svn_tmp_repo_dir/trunk/assets/
 fi
 cd $svn_tmp_repo_dir
 
-svn status | grep '^!' | awk '{print $2}' | xargs svn delete --force
+FILES_TO_DELETE=$(svn status | grep '^!' | awk '{print $2}')
+if [ -n "$FILES_TO_DELETE" ]; then
+    xargs svn delete --force
+fi
+
 svn add --force trunk --auto-props --parents --depth infinity -q
 
 mkdir -p tags

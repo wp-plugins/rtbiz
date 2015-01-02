@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.0.1
+  Version: 1.0.2
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.0.1' );
+	define( 'RT_BIZ_VERSION', '1.0.2' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -285,7 +285,8 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 		function init_rt_mailbox(){
 			global $rt_MailBox ;
-			$rt_MailBox = new Rt_Mailbox( Rt_Access_Control::$modules, Rt_Biz::$dashboard_slug, trailingslashit( RT_BIZ_PATH ) . 'index.php' );
+			$cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'admin' );
+			$rt_MailBox = new Rt_Mailbox( $cap, Rt_Access_Control::$modules, Rt_Biz::$dashboard_slug, trailingslashit( RT_BIZ_PATH ) . 'index.php' );
 		}
 
 		function update_database() {

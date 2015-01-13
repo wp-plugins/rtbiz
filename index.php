@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.0.2
+  Version: 1.2
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.0.2' );
+	define( 'RT_BIZ_VERSION', '1.2' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -72,7 +72,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 		/**
 		 * @var string - rtBiz Dashboard Screen ID
 		 */
-		public $dashboard_screen;
+		static $dashboard_screen;
 
 		/**
 		 * @var string - rtBiz Access Control Page Slug
@@ -181,13 +181,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			add_action( 'admin_init', array( self::$instance, 'welcome' ) );
 			add_filter( 'rt_biz_modules', array( self::$instance, 'register_rt_biz_module' ) );
 
-			self::$instance->update_database();
-
-			self::$instance->init_db_models();
-
 			self::$instance->init_attributes();
-
-			self::$instance->init_notification_queue();
 
 			self::$instance->init_access_control();
 			self::$instance->init_modules();
@@ -210,18 +204,18 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 			//after_setup_theme hook because before that we do not have ACL module registered
 			add_action( 'after_setup_theme', array( self::$instance, 'init_rt_mailbox' ),20 );
+			add_action( 'after_setup_theme', array( self::$instance, 'init_importer' ),21 );
 
 			do_action( 'rt_biz_init' );
 		}
 
 		function includes() {
 			require_once plugin_dir_path( __FILE__ ) . 'app/vendor/' . 'redux/ReduxCore/framework.php';
-			global $rtb_app_autoload, $rtb_models_autoload, $rtb_abstract_autoload, $rtb_modules_autoload, $rtb_settings_autoload, $rtb_notification_autoload, $rtb_reports_autoload, $rtb_helper_autoload;
+			global $rtb_app_autoload, $rtb_models_autoload, $rtb_abstract_autoload, $rtb_modules_autoload, $rtb_settings_autoload, $rtb_reports_autoload, $rtb_helper_autoload;
 			$rtb_app_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/' );
 			$rtb_models_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/models/' );
 			$rtb_abstract_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/abstract/' );
 			$rtb_modules_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/modules/' );
-			$rtb_notification_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/notification/' );
 			$rtb_settings_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/settings/' );
 			$rtb_reports_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/lib/rtreports/' );
 			$rtb_helper_autoload = new RT_WP_Autoload( RT_BIZ_PATH . 'app/helper/' );
@@ -289,26 +283,9 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			$rt_MailBox = new Rt_Mailbox( $cap, Rt_Access_Control::$modules, Rt_Biz::$dashboard_slug, trailingslashit( RT_BIZ_PATH ) . 'index.php' );
 		}
 
-		function update_database() {
-			$updateDB = new RT_DB_Update( trailingslashit( RT_BIZ_PATH ) . 'index.php', trailingslashit( RT_BIZ_PATH . 'app/schema/' ) );
-			$updateDB->do_upgrade();
-		}
-
-		function init_db_models() {
-			global $rt_biz_notification_rules_model, $rt_biz_notification_queue_model;
-
-			$rt_biz_notification_rules_model = new RT_Biz_Notification_Rules_Model();
-			$rt_biz_notification_queue_model = new RT_Biz_Notification_Queue_Model();
-		}
-
 		function init_attributes() {
 			global $rt_biz_attributes;
 			$rt_biz_attributes = new Rt_Biz_Attributes();
-		}
-
-		function init_notification_queue() {
-			global $rt_biz_notification_queue;
-			$rt_biz_notification_queue = new RT_Biz_Notification_Queue();
 		}
 
 		/**
@@ -325,21 +302,38 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			);
 
 			$settings = biz_get_redux_settings();
+			$this->menu_order[] = 'edit.php?post_type=' . rt_biz_get_company_post_type();
 			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
 				$this->menu_order[] = 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type();
 			}
-			$this->menu_order[] = 'edit.php?post_type=' . rt_biz_get_company_post_type();
-			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
-				$this->menu_order[] = 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_company_post_type();
+
+			if ( ! empty( self::$access_control_slug ) ) {
+				$this->menu_order[] = self::$access_control_slug;
 			}
 
-			$this->menu_order = array_merge( $this->menu_order, array(
-				self::$access_control_slug,
-				'edit-tags.php?taxonomy='.RT_Departments::$slug. '&post_type=' . rt_biz_get_contact_post_type(),
-				Rt_Biz_Attributes::$attributes_page_slug,
-				Rt_Mailbox::$page_name,
-				self::$settings_slug,
-			) );
+			if ( class_exists( 'RT_Departments' ) ) {
+				$this->menu_order[] = 'edit-tags.php?taxonomy='.RT_Departments::$slug. '&post_type=' . rt_biz_get_contact_post_type();
+			}
+
+			if ( class_exists( 'Rt_Biz_Attributes' ) ) {
+				$this->menu_order[] = Rt_Biz_Attributes::$attributes_page_slug;
+			}
+
+			if ( class_exists( 'Rt_Mailbox' ) ) {
+				$this->menu_order[] = Rt_Mailbox::$page_name;
+			}
+
+			if ( class_exists( 'Rt_Importer' ) ) {
+				$this->menu_order[] = Rt_Importer::$page_slug;
+			}
+
+			if ( class_exists( 'Rt_Importer_Mapper' ) ) {
+				$this->menu_order[] = Rt_Importer_Mapper::$page_slug;
+			}
+
+			if ( ! empty( self::$settings_slug ) ) {
+				$this->menu_order[] = self::$settings_slug;
+			}
 		}
 
 		function custom_pages_order( $menu_order ) {
@@ -427,6 +421,15 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 		function init_tour(){
 			global $rt_biz_tour;
 			$rt_biz_tour = new RT_Guide_Tour();
+		}
+
+		function init_importer(){
+			global $rt_importer;
+			$arg = array(
+				'parent_slug' => Rt_Biz::$dashboard_slug,
+				'page_capability' => 'manage_options',
+			);
+			$rt_importer = new Rt_Importer( $arg );
 		}
 
 		/**
@@ -702,7 +705,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 			// Taxonomy menu hack for rtBiz
 			if ( isset( $_REQUEST['taxonomy'] ) && isset( $_REQUEST['post_type'] ) && in_array( $_REQUEST['post_type'], array( rt_biz_get_contact_post_type(), rt_biz_get_company_post_type() ) ) )  {
-				wp_localize_script( 'rt-biz-admin', 'rt_biz_dashboard_screen', $this->dashboard_screen );
+				wp_localize_script( 'rt-biz-admin', 'rt_biz_dashboard_screen', self::$dashboard_screen );
 				wp_localize_script( 'rt-biz-admin', 'rt_biz_menu_url', admin_url( 'edit-tags.php?taxonomy=' . $_REQUEST['taxonomy'] . '&post_type=' . $_REQUEST['post_type'] ) );
 			}
 
@@ -716,16 +719,13 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			$settings  = biz_get_redux_settings();
 			$logo_url               = ! empty( $settings['logo_url']['url'] ) ? $settings['logo_url']['url'] : RT_BIZ_URL . 'app/assets/img/biz-16X16.png' ;
 			$menu_label             = ! empty( $settings['menu_label'] ) ? $settings['menu_label'] : __( 'rtBiz' );
-			$this->dashboard_screen = add_menu_page( $menu_label, $menu_label, rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'author' ), self::$dashboard_slug, array( $this, 'dashboard_ui' ), $logo_url, self::$menu_position );
+			self::$dashboard_screen = add_menu_page( $menu_label, $menu_label, rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'author' ), self::$dashboard_slug, array( $this, 'dashboard_ui' ), $logo_url, self::$menu_position );
 
-			$rt_biz_dashboard->add_screen_id( $this->dashboard_screen );
+			$rt_biz_dashboard->add_screen_id( self::$dashboard_screen );
 			$rt_biz_dashboard->setup_dashboard();
 			$settings = biz_get_redux_settings();
 			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
-				add_submenu_page( self::$dashboard_slug, __( 'Offerings' ), __( '--- Offerings' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type() );
-			}
-			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
-				add_submenu_page( self::$dashboard_slug, __( 'Offerings' ), __( '--- Offerings' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_company_post_type() );
+				add_submenu_page( self::$dashboard_slug, __( 'Offerings' ), __( 'Offerings' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type() );
 			}
 			add_submenu_page( self::$dashboard_slug, __( 'Access Control' ), __( 'Access Control' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'admin' ), self::$access_control_slug, array( $rt_access_control, 'acl_settings_ui' ) );
 			add_submenu_page( self::$dashboard_slug, __( 'Departments' ), __( '--- Departments' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . RT_Departments::$slug . '&post_type=' . rt_biz_get_contact_post_type() );

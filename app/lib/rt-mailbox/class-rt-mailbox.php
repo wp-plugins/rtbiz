@@ -45,22 +45,17 @@ if ( ! class_exists( 'Rt_Mailbox' ) ) {
 		var $module_name;
 
 		/**
-		 * @var $parent_page_slug - Page slug under which the attributes page is to be shown. If null / empty then an individual Menu Page will be added
+		 * @var $parent_page_slug - Page slug under which the Mailbox page is to be shown. If null / empty then an individual Menu Page will be added
 		 */
 		var $parent_page_slug;
 
 		/**
-		 * @var $page_slug - Page slug for Attributes Page
+		 * @var $page_slug - Page slug for Mailbox Page
 		 */
 		var $page_slug;
 
 		/**
-		 * @var $post_type - If any post type passed, only attributes for those post type will be listed on the page.
-		 */
-		var $post_type;
-
-		/**
-		 * @var $page_cap - Capability for Attributes Admin Page; if not passed, default cap will be 'manage_options'
+		 * @var $page_cap - Capability for Mailbox Admin Page; if not passed, default cap will be 'manage_options'
 		 */
 		var $page_cap;
 		public $modules = array();
@@ -75,6 +70,7 @@ if ( ! class_exists( 'Rt_Mailbox' ) ) {
 			$this->init_mailbox_help();
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles_scripts' ) );
 			$this->db_upgrade();
+			$this->page_cap = $cap;
 		}
 		function init_mailbox_help(){
 			global $rt_mailbox_help;
@@ -128,18 +124,20 @@ if ( ! class_exists( 'Rt_Mailbox' ) ) {
 		}
 
 		function render_mailbox_setting_page(){
-			do_action( 'rt_mailbox_randed_view' );
 			?>
 			<div class="wrap">
 			<h2> <?php echo __( 'Mailbox Setting' ); ?></h2>
 			<?php
 			$this->mailbox_tabs();
+			do_action( 'rt_mailbox_randed_view_before' );
 			if ( isset( $_REQUEST['tab'] ) && 'imap' == $_REQUEST['tab'] ) {
 				echo $this->imap_view();
 			} else if ( isset( $_REQUEST['page'] ) && self::$page_name == $_REQUEST['page'] ){
 				$this->mailbox_view();
 			}
+			do_action( 'rt_mailbox_randed_view_after' );
 			?> </div> <?php
+
 		}
 
 		function add_mailbox_page( $page_slug, $parent_page_slug = '', $page_cap = 'manage_options' ) {

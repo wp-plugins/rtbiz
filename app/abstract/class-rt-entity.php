@@ -175,38 +175,31 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 
 
 		function save_old_data( $post_id ){
-
 			if ( ! isset( $_POST['post_type'] ) ){
 				return;
 			}
-			if ( rt_biz_get_contact_post_type() != $_POST['post_type'] && rt_biz_get_company_post_type() != $_POST['post_type'] ) {
+			if ( $this->post_type != $_POST['post_type'] ) {
 				return;
 			}
-			$flag       = false;
-			if ( isset( $_POST['tax_input'] ) && isset( $_POST['tax_input'][ Rt_Contact::$user_category_taxonomy ] ) ) {
-				$post_terms = wp_get_post_terms( $post_id, Rt_Contact::$user_category_taxonomy );
-				$postterms  = array_filter( $_POST['tax_input'][ Rt_Contact::$user_category_taxonomy ] );
-				$termids    = wp_list_pluck( $post_terms, 'term_id' );
-				$diff       = array_diff( $postterms, $termids );
-				$diff2      = array_diff( $termids, $postterms );
-				$diff_tax1  = array();
-				$body       = '';
-				$diff_tax2  = array();
-				foreach ( $diff as $tax_id ) {
-					$tmp          = get_term_by( 'id', $tax_id, Rt_Contact::$user_category_taxonomy );
-					$diff_tax1[] = $tmp->name;
-				}
+			$body = '';
+			$flag = false;
+			$post = get_post( $post_id );
+			if ( $_POST['post_title'] != $post->post_title ){
+				$body = '<strong>'.__( 'Contact Title' ).'</strong> : ';
+				$body .= rtbiz_text_diff( $post->post_title , $_POST['post_title'] );
+			}
+			if ( $_POST['content'] != $post->post_content ){
+				$body = '<strong>'.__( 'Contact Content' ).'</strong> : ';
+				$body .= rtbiz_text_diff( $post->post_content, $_POST['content'] );
+			}
 
-				foreach ( $diff2 as $tax_id ) {
-					$tmp          = get_term_by( 'id', $tax_id, Rt_Contact::$user_category_taxonomy );
-					$diff_tax2[] = $tmp->name;
-				}
-
-				$difftxt = rtbiz_text_diff( implode( ' ', $diff_tax2 ), implode( ' ', $diff_tax1 ) );
-
-				if ( ! empty( $difftxt ) || $difftxt != '' ) {
-					$body = '<strong>'.__( 'User Category' ).'</strong> : ' . $difftxt;
-					$flag = true;
+			if ( isset( $_POST['tax_input'] ) ) {
+				foreach ( $_POST['tax_input'] as $key => $val ){
+					$tmp = rtbiz_get_tex_diff( $post_id, $key );
+					if ( $tmp != '' ){
+						$body .= $tmp;
+						$flag = true;
+					}
 				}
 			}
 
@@ -420,7 +413,8 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 						</div>
 						<div class="pure-u-1-1 form-input">
 						<input type="text" <?php echo ( isset( $field['name'] ) ) ? 'name="' . $field['name'] . '"' : ''; ?> <?php echo ( isset( $field['id'] ) ) ? 'id="' . $field['id'] . '"' : ''; ?> value='<?php echo $values; ?>' <?php echo ( isset( $field['class'] ) ) ? 'class="datepicker ' . $field['class'] . '"' : 'class="datepicker"'; ?>>
-					<?php //echo ( isset( $field[ 'description' ] ) ) ? '<p class="description">' . $field[ 'description' ] . '</p>' : ''; ?>
+							<br /><span></span>
+							<?php //echo ( isset( $field[ 'description' ] ) ) ? '<p class="description">' . $field[ 'description' ] . '</p>' : ''; ?>
 						</div>
 						</div>
 					<?php
@@ -434,7 +428,7 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 						<label for="<?php echo  ( isset( $field['id'] ) ) ? '' . $field['id'] . '' : '' ?>"><?php echo $field['label']; ?></label><?php } ?>
 					</div>
 					<div class="pure-u-1-1 form-input">
-						<input <?php echo ( isset( $field['type'] ) ) ? 'type="' . $field['type'] . '"' : ''; ?> <?php echo ( isset( $field['name'] ) ) ? 'name="' . $field['name'] . '"' : ''; ?> <?php echo ( isset( $field['class'] ) ) ? 'class="' . $field['class'] . '"' : ''; ?>><button data-type='<?php echo ( stristr( $field['key'], 'email' ) != false ) ? 'email' : ''; ?>' type='button' class='button button-primary add-multiple'>+</button>
+						<input <?php echo ( isset( $field['type'] ) ) ? 'type="' . $field['type'] . '"' : ''; ?> <?php echo ( isset( $field['name'] ) ) ? 'name="' . $field['name'] . '"' : ''; ?> <?php echo ( isset( $field['class'] ) ) ? 'class="' . $field['class'] . '"' : ''; ?>><button data-type='<?php echo ( $field['type']) ; ?>' type='button' class='button button-primary add-multiple'>+</button>
 						<br /><span></span>
 						<?php foreach ( $values as $value ) { ?>
 							<input <?php echo ( isset( $field['type'] ) ) ? 'type="' . $field['type'] . '"' : ''; ?> <?php echo ( isset( $field['name'] ) ) ? 'name="' . $field['name'] . '"' : ''; ?> value = '<?php echo $value; ?>' <?php echo ( isset( $field['class'] ) ) ? 'class="second-multiple-input ' . $field['class'] . '"' : 'class="second-multiple-input"'; ?>>
@@ -454,7 +448,8 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 						</div>
 					<div class="pure-u-1-1 form-input">
 					<textarea <?php echo ( isset( $field['name'] ) ) ? 'name="' . $field['name'] . '"' : ''; ?> <?php echo ( isset( $field['id'] ) ) ? 'id="' . $field['id'] . '"' : ''; ?> <?php echo ( isset( $field['class'] ) ) ? 'class="' . $field['class'] . '"' : ''; ?>><?php echo $values; ?></textarea>
-					<?php //echo ( isset( $field[ 'description' ] ) ) ? '<p class="description">' . $field[ 'description' ] . '</p>' : ''; ?>
+						<br /><span></span>
+						<?php //echo ( isset( $field[ 'description' ] ) ) ? '<p class="description">' . $field[ 'description' ] . '</p>' : ''; ?>
 					</div>
 					</div>
 					<?php
@@ -480,7 +475,8 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 					</div>
 					<div class="pure-u-1-1 form-input">
 					<input <?php echo ( isset( $field['type'] ) ) ? 'type="' . $field['type'] . '"' : ''; ?> <?php echo ( isset( $field['name'] ) ) ? 'name="' . $field['name'] . '"' : ''; ?> <?php echo ( isset( $field['id'] ) ) ? 'id="' . $field['id'] . '"' : ''; ?> value='<?php echo $values; ?>' <?php echo ( isset( $field['class'] ) ) ? 'class="' . $field['class'] . '"' : ''; ?>>
-<!--						--><?php //echo ( isset( $field[ 'description' ] ) ) ? '<p class="description">' . $field[ 'description' ] . '</p>' : ''; ?>
+						<br /><span></span>
+						<!--						--><?php //echo ( isset( $field[ 'description' ] ) ) ? '<p class="description">' . $field[ 'description' ] . '</p>' : ''; ?>
 					</div>
 					</div>
 					<?php

@@ -302,7 +302,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					'text' => __( 'Email' ),
 					'label' => __( 'Primary Email Address' ),
 					'is_multiple' => false,
-					'type' => 'text',
+					'type' => 'email',
 					'name' => 'contact_meta[contact_primary_email]',
 					'description' => __( 'Valid email address.' ),
 					'category' => 'Contact',
@@ -312,7 +312,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					'text' => __( 'Email' ),
 					'label' => __( 'Secondary Email Address' ),
 					'is_multiple' => true,
-					'type' => 'text',
+					'type' => 'email',
 					'name' => 'contact_meta[contact_email][]',
 					'class' => 'input-multiple',
 					'description' => __( 'Valid email address.' ),
@@ -323,7 +323,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					'text' => __( 'Phone' ),
 					'label' => __( 'Phone Number' ),
 					'is_multiple' => true,
-					'type' => 'text',
+					'type' => 'tel',
 					'name' => 'contact_meta[contact_phone][]',
 					'class' => 'input-multiple',
 					'description' => __( 'Phone number.' ),
@@ -334,7 +334,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					'text' => __( 'Fax' ),
 					'label' => __( 'Fax Number' ),
 					'is_multiple' => true,
-					'type' => 'text',
+					'type' => 'tel',
 					'name' => 'contact_meta[contact_fax][]',
 					'class' => 'input-multiple',
 					'description' => __( 'Fax number.' ),
@@ -345,7 +345,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					'text' => __( 'Website' ),
 					'label' => __( 'Website URL' ),
 					'is_multiple' => true,
-					'type' => 'text',
+					'type' => 'url',
 					'name' => 'contact_meta[contact_website][]',
 					'class' => 'input-multiple',
 					'description' => __( 'Website URL.' ),
@@ -605,11 +605,17 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 						}
 						if ( $( this ).data( "type" ) != undefined ) {
 							if ( $( this ).data( "type" ) == 'email' ) {
-								if ( ! IsEmail( tempVal ) ){
+								if ( ! IsEmail( tempVal ) ) {
 									addError( this, 'Please enter valid email address' );
 									return;
+								} else {
+									removeError( this );
 								}
-								else{
+							} else if ( $( this ).data( "type" ) == 'tel' ) {
+								if ( ! validatePhone( tempVal ) ) {
+									addError( this, 'Please Enter Valid Number' );
+									return;
+								} else {
 									removeError( this );
 								}
 							}
@@ -779,18 +785,22 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		/**
 		 * create contact
 		 *
-		 * @param $name
+		 * @param        $name
 		 * @param string $description
+		 * @param string $email
+		 *
 		 * @return int|WP_Error
 		 */
-		function add_contact( $name, $description = '' ) {
+		function add_contact( $name, $description = '', $email = '' ) {
 			$contact_id = wp_insert_post( array(
 				                              'post_title'   => $name,
 				                              'post_content' => $description,
 				                              'post_type'    => $this->post_type,
 				                              'post_status'  => 'publish',
 			                              ) );
-
+			if ( ! empty( $email ) ){
+				rt_biz_update_entity_meta( $contact_id, $this->primary_email_key, $email );
+			}
 			return $contact_id;
 		}
 
@@ -891,7 +901,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			$results = $wpdb->get_results( "select ID,display_name,user_email from $wpdb->users where user_email like '%{$query}%' or display_name like '%{$query}%' or user_nicename like '%{$query}%' ;" );
 			$arrReturn = array();
 			foreach ( $results as $author ) {
-				$arrReturn[] = array( 'id' => $author->ID, 'label' => $author->display_name, 'imghtml' => get_avatar( $author->user_email, 25 ) );
+				$arrReturn[] = array( 'id' => $author->ID, 'label' => $author->display_name, 'imghtml' => get_avatar( $author->user_email, 25 ), 'editlink' => rtbiz_get_contact_edit_link( $author->user_email ) );
 			}
 			header( 'Content-Type: application/json' );
 			echo json_encode( $arrReturn );

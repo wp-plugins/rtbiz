@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.2
+  Version: 1.2.1
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.2' );
+	define( 'RT_BIZ_VERSION', '1.2.1' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -203,6 +203,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			add_action( 'after_setup_theme', array( self::$instance, 'init_wc_product_taxonomy' ),20 );
 
 			//after_setup_theme hook because before that we do not have ACL module registered
+			add_action( 'after_setup_theme', array( self::$instance, 'init_configuration' ),20 );
 			add_action( 'after_setup_theme', array( self::$instance, 'init_rt_mailbox' ),20 );
 			add_action( 'after_setup_theme', array( self::$instance, 'init_importer' ),21 );
 
@@ -279,8 +280,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 		function init_rt_mailbox(){
 			global $rt_MailBox ;
-			$cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'admin' );
-			$rt_MailBox = new Rt_Mailbox( $cap, Rt_Access_Control::$modules, Rt_Biz::$dashboard_slug, trailingslashit( RT_BIZ_PATH ) . 'index.php' );
+			$rt_MailBox = new Rt_Mailbox( trailingslashit( RT_BIZ_PATH ) . 'index.php', Rt_Access_Control::$modules, RT_BIZ_Configuration::$page_slug, null, false );
 		}
 
 		function init_attributes() {
@@ -425,11 +425,17 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 		function init_importer(){
 			global $rt_importer;
+			$rt_importer = new Rt_Importer( RT_BIZ_Configuration::$page_slug, null, false );
+		}
+
+		function init_configuration(){
+			global $rt_configuration;
+			$editor_cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' );
 			$arg = array(
 				'parent_slug' => Rt_Biz::$dashboard_slug,
-				'page_capability' => 'manage_options',
+				'page_capability' => $editor_cap,
 			);
-			$rt_importer = new Rt_Importer( $arg );
+			$rt_configuration = new RT_BIZ_Configuration( $arg );
 		}
 
 		/**

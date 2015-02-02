@@ -234,13 +234,15 @@ function rt_biz_add_company( $name, $note = '', $address = '', $country = '', $m
 /**
  * add a contact
  *
- * @param $name
+ * @param        $name
  * @param string $description
+ * @param string $email
+ *
  * @return mixed
  */
-function rt_biz_add_contact( $name, $description = '' ) {
+function rt_biz_add_contact( $name, $description = '', $email = '' ) {
 	global $rt_contact;
-	return $rt_contact->add_contact( $name, $description );
+	return $rt_contact->add_contact( $name, $description, $email );
 }
 
 function rt_biz_clear_post_connections_to_contact( $post_type, $from ) {
@@ -652,4 +654,44 @@ function biz_is_primary_email_unique_company( $email ) {
 		return true;
 	}
 	return false;
+}
+
+function rtbiz_get_contact_edit_link( $email ){
+	$post = rt_biz_get_contact_by_email( $email );
+	if ( ! empty( $post ) ){
+		return get_edit_post_link( $post[0]->ID );
+	}
+	else {
+		return '#';
+	}
+}
+
+
+function rtbiz_get_tex_diff( $post_id, $texonomy ){
+	$post_terms = wp_get_post_terms( $post_id, $texonomy );
+	$postterms  = array_filter( $_POST['tax_input'][ $texonomy ] );
+	$termids    = wp_list_pluck( $post_terms, 'term_id' );
+	$diff       = array_diff( $postterms, $termids );
+	$diff2      = array_diff( $termids, $postterms );
+	$diff_tax1  = array();
+	$diff_tax2  = array();
+	foreach ( $diff as $tax_id ) {
+		$tmp          = get_term_by( 'id', $tax_id, $texonomy );
+		$diff_tax1[] = $tmp->name;
+	}
+
+	foreach ( $diff2 as $tax_id ) {
+		$tmp          = get_term_by( 'id', $tax_id, $texonomy );
+		$diff_tax2[] = $tmp->name;
+	}
+
+	$difftxt = rtbiz_text_diff( implode( ' ', $diff_tax2 ), implode( ' ', $diff_tax1 ) );
+
+	if ( ! empty( $difftxt ) || $difftxt != '' ) {
+		$tax = get_taxonomy( $texonomy );
+		$lable = get_taxonomy_labels( $tax );
+		$body = '<strong>'.__( $lable->name ).'</strong> : ' . $difftxt;
+		return $body;
+	}
+	return '';
 }

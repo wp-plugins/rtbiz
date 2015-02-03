@@ -55,7 +55,7 @@ if ( ! class_exists( 'Rt_Gravity_Reports' ) ) {
 
 		static function get_field_choices( $field ) {
 			$choices = array();
-			if ( isset( $field['choices'] ) && ! empty( $field['choices'] ) ) {
+			if ( isset( $field['choices'] ) && ! empty($field['choices']) ) {
 				$choices = $field['choices'];
 			}
 			return $choices;
@@ -176,7 +176,7 @@ if ( ! class_exists( 'Rt_Gravity_Reports' ) ) {
 									break;
 								case 'select':
 								case 'radio':
-									$val = isset( $lead[ $field['id'] ] ) ? $lead[ $field['id'] ] : '';
+									$val = isset( $lead[ $field['id'] ] ) ? $lead [ $field['id'] ] : '';
 									$choices = self::get_field_choices( $field );
 									$others_flag = false;
 									foreach ( $choices as $choice ) {
@@ -196,7 +196,7 @@ if ( ! class_exists( 'Rt_Gravity_Reports' ) ) {
 									}
 									break;
 								default:
-									$temp[] = isset( $lead[ $field['id'] ] ) ? ( 'number' == $field['type'] ) ? floatval( $lead[ $field['id'] ] ) : $lead[ $field['id'] ] : 'NA';
+									$temp[] = isset( $lead[ $field['id'] ] ) ? ( $field['type'] == 'number' ) ? floatval( $lead[ $field['id'] ] ) : $lead[ $field['id'] ] : 'NA';
 									break;
 							}
 						}
@@ -611,9 +611,9 @@ if ( ! class_exists( 'Rt_Gravity_Reports' ) ) {
 							);
 						}
 						break;
-					//					case 'poll':
-					//						var_dump($field);
-					//						break;
+						//					case 'poll':
+						//						var_dump($field);
+						//						break;
 					case 'numerics':
 						if ( 'number' === $field['type'] ) {
 							$return_fields[] = array(

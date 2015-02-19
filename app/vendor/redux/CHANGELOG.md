@@ -1,5 +1,43 @@
 # Redux Framework Changelog
 
+## 3.4.2.6
+* Fixed:   #1478 - Import/export failing when two instances if Redux in use.  Thanks, @desaiuditd!
+* Fixed:   Section field not indenting properly, if at all.
+
+## 3.4.2.5
+* Added:   #2031 - Proper CSS sanitization for compliancy with WP.org. 
+
+## 3.4.2.4
+* Fixed:   #2027 - added isset()
+
+## 3.4.2.3
+* Fixed:   #2019 - Reset issues with PHP 5.2.  Thanks a bunch, @Webcreations907!
+
+## 3.4.2.2
+* Fixed:   #2023: Issue with custom submenus in menu.
+
+## 3.4.2.1
+* Fixed:   #2025: Issue with select sorting.
+
+## 3.4.2
+* Update:  ACE Editor.  Thanks @corradomatt.
+
+## 3.4.1
+* Fixed:   Small filesystem option with bad filter key reference.
+* Added:   Small return if $section filter returned the section empty.
+
+## 3.4.0
+* WP.org Release
+
+## 3.3.10.7
+* Fixed:    Reset section hook firing too early.
+
+## 3.3.10.6
+* Modified: The Redux Repeater field has landed!
+
+## 3.3.10.5
+* Fixed:    #1983 - color_rgba not outputting default values on first load (before save).
+
 ## 3.3.10.4
 * Fixed:    Google font enqueues with opt_name to avoid collision with multiple Redux instances.
 

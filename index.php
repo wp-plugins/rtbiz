@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.2.5
+  Version: 1.2.6
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.2.5' );
+	define( 'RT_BIZ_VERSION', '1.2.6' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -203,7 +203,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			add_action( 'after_setup_theme', array( self::$instance, 'init_wc_product_taxonomy' ),20 );
 
 			//after_setup_theme hook because before that we do not have ACL module registered
-			add_action( 'after_setup_theme', array( self::$instance, 'init_configuration' ),20 );
+			//add_action( 'after_setup_theme', array( self::$instance, 'init_configuration' ),20 );
 			add_action( 'after_setup_theme', array( self::$instance, 'init_rt_mailbox' ),20 );
 			add_action( 'after_setup_theme', array( self::$instance, 'init_importer' ),21 );
 
@@ -279,7 +279,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 		function init_rt_mailbox(){
 			global $rt_MailBox ;
-			$rt_MailBox = new Rt_Mailbox( trailingslashit( RT_BIZ_PATH ) . 'index.php', Rt_Access_Control::$modules, RT_BIZ_Configuration::$page_slug, null, false );
+			$rt_MailBox = new Rt_Mailbox( trailingslashit( RT_BIZ_PATH ) . 'index.php', Rt_Access_Control::$modules, null, null, false );
 		}
 
 		function init_attributes() {
@@ -302,9 +302,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 			$settings = biz_get_redux_settings();
 			$this->menu_order[] = 'edit.php?post_type=' . rt_biz_get_company_post_type();
-			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
-				$this->menu_order[] = 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type();
-			}
+			$this->menu_order[] = 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type();
 
 			if ( ! empty( self::$access_control_slug ) ) {
 				$this->menu_order[] = self::$access_control_slug;
@@ -397,19 +395,16 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			);
 
 			$settings = biz_get_redux_settings();
-			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
+			$offering_plugin   = $settings['offering_plugin'];
+			$to_register_posttype = array();
+			foreach ( Rt_Access_Control::$modules as $key => $value ){
 
-				$offering_plugin   = $settings['offering_plugin'];
-				$to_register_posttype = array();
-				foreach ( Rt_Access_Control::$modules as $key => $value ){
-
-					if ( ! empty( $value['offering_support'] ) ) {
-						$to_register_posttype = array_merge( $to_register_posttype, $value['offering_support'] );
-					}
+				if ( ! empty( $value['offering_support'] ) ) {
+					$to_register_posttype = array_merge( $to_register_posttype, $value['offering_support'] );
 				}
-
-				$rtbiz_offerings = new Rt_Offerings( $offering_plugin, $terms_caps, $to_register_posttype );
 			}
+
+			$rtbiz_offerings = new Rt_Offerings( $offering_plugin, $terms_caps, $to_register_posttype );
 		}
 
 		function init_help() {
@@ -424,17 +419,17 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 		function init_importer(){
 			global $rt_importer;
-			$rt_importer = new Rt_Importer( RT_BIZ_Configuration::$page_slug, null, false );
+			$rt_importer = new Rt_Importer( null, null, false );
 		}
 
 		function init_configuration(){
-			global $rt_configuration;
+			/*global $rt_configuration;
 			$editor_cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' );
 			$arg = array(
 				'parent_slug' => Rt_Biz::$dashboard_slug,
 				'page_capability' => $editor_cap,
 			);
-			$rt_configuration = new RT_BIZ_Configuration( $arg );
+			$rt_configuration = new RT_BIZ_Configuration( $arg );*/
 		}
 
 		/**
@@ -452,16 +447,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 				// guide Tour
 				add_filter( 'rt_guide_tour_list', array( $this, 'rtbiz_quide_tour' ) );
-
-				add_filter( 'admin_notices', array( $this, 'rtbiz_admin_notices' ) );
-				add_action( 'wp_ajax_rtbiz_hide_offering_notice', array( $this, 'rtbiz_hide_offering_notice' ), 10 );
 			}
-		}
-
-		function rtbiz_hide_offering_notice(){
-			update_option( 'rtbiz_hide-offering-notice', true );
-			echo 'true';
-			die();
 		}
 
 		function rtbiz_quide_tour( $pointers ){
@@ -660,17 +646,6 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			return $pointers;
 		}
 
-		function rtbiz_admin_notices(){
-			$settings = biz_get_redux_settings();
-			if ( ( ! isset( $settings['offering_plugin'] ) || 'none' == $settings['offering_plugin'] ) && ! get_option( 'rtbiz_hide-offering-notice' ) ) {
-				$setting_url = admin_url( 'admin.php?page=' . Rt_Biz::$settings_slug );
-				echo '<div class="updated rtbiz-offering-notice" style="padding: 10px 10px 10px;"><div style="display: inline;">You need to select store for Offerings from <a href="' . esc_url( $setting_url ) . '">settings</a>';
-				echo '</div><a href="#" class="rtbiz_offering_dissmiss">x</a></div>';
-			} else {
-				delete_option( 'rtbiz_hide-offering-notice' );
-			}
-		}
-
 		function plugin_action_links( $links ) {
 			$links['get-started'] = '<a href="' . admin_url( 'admin.php?page=' . Rt_Biz::$dashboard_slug ) . '">' . __( 'Get Started', RT_BIZ_TEXT_DOMAIN ) . '</a>';
 			$links['settings'] = '<a href="' . admin_url( 'admin.php?page=' . Rt_Biz::$settings_slug ) . '">' . __( 'Settings', RT_BIZ_TEXT_DOMAIN ) . '</a>';
@@ -693,7 +668,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 		function load_styles_scripts() {
 			global $rt_contact, $rt_company;
 			wp_enqueue_script( 'rt-biz-admin', RT_BIZ_URL . 'app/assets/javascripts/admin.js', array( 'jquery' ), RT_BIZ_VERSION, true );
-			wp_localize_script( 'rt-biz-admin', 'rtbiz_ajax_url_offering', admin_url( 'admin-ajax.php' ) );
+			wp_localize_script( 'rt-biz-admin', 'rtbiz_ajax_url_admin', admin_url( 'admin-ajax.php' ) );
 			if ( isset( $_REQUEST['post'] ) && isset( $_REQUEST['action'] ) && 'edit' == $_REQUEST['action'] ) {
 
 				$post_type = get_post_type( $_REQUEST['post'] );
@@ -739,9 +714,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			$rt_biz_dashboard->add_screen_id( self::$dashboard_screen );
 			$rt_biz_dashboard->setup_dashboard();
 			$settings = biz_get_redux_settings();
-			if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
-				add_submenu_page( self::$dashboard_slug, __( 'Offerings' ), __( 'Offerings' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type() );
-			}
+			add_submenu_page( self::$dashboard_slug, __( 'Offerings' ), __( 'Offerings' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type() );
 			add_submenu_page( self::$dashboard_slug, __( 'Access Control' ), __( 'Access Control' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'admin' ), self::$access_control_slug, array( $rt_access_control, 'acl_settings_ui' ) );
 			add_submenu_page( self::$dashboard_slug, __( 'Departments' ), __( '--- Departments' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . RT_Departments::$slug . '&post_type=' . rt_biz_get_contact_post_type() );
 			add_submenu_page( self::$dashboard_slug, __( 'User Groups' ), __( '--- Contact Groups' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Contact::$user_category_taxonomy . '&post_type=' . rt_biz_get_contact_post_type() );
@@ -793,7 +766,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 					$nonce = wp_create_nonce( 'rtbiz_install_plugin_posts-to-posts' );
 					?>
 					<p><b><?php _e( 'rtBiz:' ) ?></b> <?php _e( 'Click' ) ?> <a href="#"
-					                                                            onclick="install_rtbiz_plugin('posts-to-posts','rtbiz_install_plugin','<?php echo $nonce ?>')">here</a> <?php _e( 'to install posts-to-posts.', 'posts-to-posts' ) ?>
+					                                                            onclick="install_rtbiz_plugin('posts-to-posts','rtbiz_install_plugin','<?php echo $nonce ?>')">here</a> <?php _e( 'to install Posts 2 Posts.', 'posts-to-posts' ) ?>
 					</p>
 				<?php
 				} else {
@@ -802,7 +775,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 						$nonce = wp_create_nonce( 'rtbiz_activate_plugin_' . $path );
 						?>
 						<p><b><?php _e( 'rtBiz:' ) ?></b> <?php _e( 'Click' ) ?> <a href="#"
-						                                                            onclick="activate_rtbiz_plugin('<?php echo $path ?>','rtbiz_activate_plugin','<?php echo $nonce; ?>')">here</a> <?php _e( 'to activate posts-to-posts.', 'posts-to-posts' ) ?>
+						                                                            onclick="activate_rtbiz_plugin('<?php echo $path ?>','rtbiz_activate_plugin','<?php echo $nonce; ?>')">here</a> <?php _e( 'to activate Posts 2 Posts.', 'posts-to-posts' ) ?>
 						</p>
 					<?php
 					}
@@ -996,6 +969,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 				'department_support' => array( $rt_contact->post_type ),
 			    'offering_support' => array( $rt_contact->post_type, $rt_company->post_type ),
 			    'setting_option_name' => Rt_Biz_Setting::$biz_opt, // Use For ACL
+				'setting_page_url'	=> admin_url( 'admin.php?page=' . Rt_Biz_Setting::$page_slug ), // for setting page
 			);
 
 			return $modules;

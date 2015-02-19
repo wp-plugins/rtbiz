@@ -4,7 +4,7 @@ Donate Link:       http://rtcamp.com/donate
 Tags:              contacts, companies, people management, business, email parsing, attributes, user groups, access control, acl, wordpress
 Requires at least: 4.1
 Tested up to:      4.1
-Stable tag:        1.2.5
+Stable tag:        1.2.6
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ rtBiz - WordPress 4 Business!
 * *Robust ACL* - Great control over who can access what data
 * *MailBox Setup*  - Configure your mailbox to automate your processes such as support helpdesk using add-ons.
 * *Attributes* - Define dynamic taxonomies to categorize all post types.
-* *Offerings* - Easily sync your WooCommerce/EDT store’s products and services.
+* *Offerings* - Easily sync your WooCommerce/EDD store’s products and services.
 * Great reporting tools
 * Easy import/export of information
 
@@ -67,6 +67,14 @@ Please refer to the documentation.
 7. Departments
 
 == Changelog ==
+
+= 1.2.6 =
+* WP User => rtBiz Contact Importer added.
+* Settings Refactoring
+* Redux Library updated
+* rt-Lib Library updated
+* Lots of developer documentation added.
+* Lots of Bug Fixes
 
 = 1.2.5 =
 * Contacts Count on Department List View

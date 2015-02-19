@@ -641,6 +641,39 @@ function biz_is_primary_email_unique( $email, $postid = null ) {
 	return false;
 }
 
+function rtbiz_export_wp_users_to_contacts(){
+	ob_start();
+	rtbiz_export_wp_users_to_contacts_dashborad( '' );
+	return ob_get_clean();
+}
+
+
+function rtbiz_export_wp_users_to_contacts_dashborad( $btnhtml = null ){
+	$nonce = wp_create_nonce( 'rt-biz-export-all' );
+	$users = new WP_User_Query( array( 'fields' => 'ID', 'number' => 1 ) );
+	?>
+	<div class="rtbiz-exporter-container">
+		<?php if ( empty( $btnhtml ) ){ ?>
+			<button type="button" class="rtbiz-export-button button button-primary"><?php _e( 'Import all' ); ?></button>
+		<?php } else { echo $btnhtml; } ?>
+		<img id="rtbiz-import-spinner" style="display: none;"  src="<?php echo admin_url() . 'images/spinner.gif'; ?>" />
+		<input id="rtbiz-contact-import-nonce" type="hidden" value="<?php echo $nonce ?>" />
+		<span id="rtbiz-import-message" class="rtbiz-exporter-message"></span>
+		<div class="contact-update" style="display: none;">
+			<p> <?php _e( 'Syncing contacts :' ); ?> <span
+					id='rtbiz-contact-count-proceed'>0</span></p>
+		</div>
+		<div class="contact-synced" style="display: none;">
+			<p> <?php _e( 'All contact synced!' ); ?> </p>
+		</div>
+		<div id="rtbiz-contact-importer-bar"></div>
+
+
+		<input id="rtbiz-contact-count" type="hidden" value="<?php echo $users->get_total(); ?>" />
+	</div>
+<?php
+}
+
 function biz_is_primary_email_unique_company( $email ) {
 	$meta_query_args = array(
 		array(
@@ -711,4 +744,41 @@ function rt_biz_get_department_contacts( $department_id ) {
 			'nopaging'            => true,
 	) );
 	return $contacts;
+}
+
+function rt_biz_mailbox_setup_view( $module ){
+	global $rt_MailBox ;
+	return $rt_MailBox->mailbox_view( $module );
+}
+
+function rt_biz_imap_setup_view(){
+	global $rt_MailBox ;
+	return $rt_MailBox->imap_view();
+}
+
+function rt_biz_gravity_importer_view( $module ){
+	global $rt_importer;
+	ob_start();
+	$rt_importer->importer_ui( $module );
+	$gravity_importer_view = ob_get_clean();
+	return $gravity_importer_view;
+}
+
+function rt_biz_gravity_importer_mapper_view(){
+	global $rtlib_importer_mapper;
+	ob_start();
+	$rtlib_importer_mapper->ui();
+	$gravity_import_mapper_content = ob_get_clean();
+	return $gravity_import_mapper_content;
+}
+
+/**
+ * Remove single connection from registered post type to Rt_Entity
+ * @param string $post_type
+ * @param mixed $from
+ * @param mixed $to
+ */
+function rt_biz_clear_post_connection_to_contact( $post_type, $from, $to ) {
+	global $rt_contact;
+	return $rt_contact->clear_post_connection_to_entity( $post_type, $from, $to );
 }

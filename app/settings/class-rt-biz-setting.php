@@ -128,6 +128,7 @@ if ( ! class_exists( 'Rt_Biz_Setting' ) ) {
 
 		public function set_sections() {
 			$admin_cap  = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'admin' );
+			$editor_cap  = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' );
 
 			// ACTUAL DECLARATION OF SECTIONS
 			$general_fields = array(
@@ -173,6 +174,58 @@ if ( ! class_exists( 'Rt_Biz_Setting' ) ) {
 				'fields'      => $general_fields,
 			);
 
+			$contact_importer_subtitle = __( '<div class="redux_field_th">Import WordPress Users to Contacts</div>' );
+			$contact_importer_subtitle .= __( 'Use this tool to import all current users to rtBiz Contacts. You can also import selected users from ' );
+			$contact_importer_subtitle .= '<a href="' . admin_url( 'users.php' ) . '">WP users</a> page.';
+			$contact_importer_subtitle .= __( '<br/>All new users will automatically get exported as Contacts.<br/> <p class="redux-container-multi_text rtbiz-import-contact-warning"><span class="redux-multi-text-remove">Importing contacts is a heavy process. So please be patient.</span></p><br/>' );
+			$contact_importer_subtitle .= rtbiz_export_wp_users_to_contacts();
+			$this->sections[]   = array(
+				'title'       => __( 'Contact Importer' ),
+				'icon'        => 'el-icon-list-alt',
+				'permissions' => $editor_cap,
+				//'subsection'  => true,
+				'fields'      => array(
+					array(
+						'id'      => 'rt_biz_import_users_to_contacts',
+						'type'    => 'raw',
+						'content' => $contact_importer_subtitle,
+					),
+				),
+			);
+
+			$Imap_fields = array();
+
+			array_push( $Imap_fields, array(
+				'id'      => 'rtbiz_imap_server_setup',
+				'type'    => 'callback',
+				'title'   => 'IMAP Server Setup',
+				'subtitle' => __( 'Configured IMAP Server(s)' ),
+				'desc'    => 'Following servers used into Mailbox',
+				'callback' => 'rt_biz_imap_setup_view',
+			) );
+
+			$this->sections[] = array(
+				'icon'        => 'el-icon-cogs',
+				'title'       => __( 'IMAP' ),
+				'permissions' => $admin_cap,
+				'fields'      => $Imap_fields,
+			);
+			$this->sections[] = array(
+				'icon'        => 'el-icon-envelope',
+				'title'       => __( 'Mailbox List' ),
+				'permissions' => $admin_cap,
+				'fields'      => array(
+					array(
+						'id'      => 'rtbiz_Mailbox_list',
+						'type'    => 'callback',
+						'title'   => 'Mailbox List',
+						'subtitle' => __( 'All Configured Mailbox(s)' ),
+						//'desc'    => 'Following mailboxes have been configured for various modules. Emails from these mailboxes will be parsed and Helpdesk will use them to create new ticket / add new followup accordingly. You can configure these mailboxes from <a href="'.add_query_arg( 'page', RT_BIZ_Configuration::$page_slug, admin_url( 'admin.php' ) ).'"rtBiz</a>',
+						'callback' => 'rtbiz_mailbox_list_view',
+					),
+				),
+			);
+
 			return true;
 		}
 
@@ -184,7 +237,7 @@ if ( ! class_exists( 'Rt_Biz_Setting' ) ) {
 		public function set_arguments() {
 
 			//$theme = wp_get_theme(); // For use with some settings. Not necessary.
-			$author_cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'author' );
+			$editor_cap  = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' );
 			$this->args = array(
 				// TYPICAL -> Change these values as you need/desire
 				'opt_name'           => self::$biz_opt,
@@ -221,7 +274,7 @@ if ( ! class_exists( 'Rt_Biz_Setting' ) ) {
 				// Order where the menu appears in the admin area. If there is any conflict, something will not show. Warning.
 				'page_parent'        => Rt_Biz::$dashboard_slug,
 				// For a full list of options, visit: http://codex.wordpress.org/Function_Reference/add_submenu_page#Parameters
-				'page_permissions'   => $author_cap,
+				'page_permissions'   => $editor_cap,
 				// Permissions needed to access the options panel.
 				//'menu_icon' => '', // Specify a custom URL to an icon
 				//'last_tab' => '', // Force your panel to always open to a specific tab (by id)
@@ -283,4 +336,12 @@ if ( ! class_exists( 'Rt_Biz_Setting' ) ) {
 
 	}
 
+}
+
+/**
+ * Display all congigured mailbox(s).
+ */
+function rtbiz_mailbox_list_view() {
+	global $rt_setting_inbound_email;
+	$rt_setting_inbound_email->rtmailbox_list_all();
 }

@@ -73,11 +73,6 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			add_action( 'wp_ajax_seach_user_from_name', array( $this, 'get_user_from_name' ) );
 
 			/**
-			 * Is Our Team Mate MetaBox for Person - Uses Titan Framework That's why on plugins_loaded
-			 */
-			//			add_action( 'plugins_loaded', array( $this, 'person_meta_box' ), 27 );
-
-			/**
 			 * New User Creation Sync With Person. Whenever a WP_User is created a new contact person will also be created.
 			 */
 			add_action( 'user_register', array( $this, 'contact_create_for_wp_user' ) );
@@ -85,7 +80,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			add_action( 'init', array( $this, 'register_tax' ), 9 );
 
 			add_action( 'init', array( $this, 'add_defualt_categories_on_activate' ), 11 );
-			add_filter( 'views_edit-rt_contact', array( $this, 'edit_view_filters' ) );
+			add_filter( 'views_edit-'.$this->post_type, array( $this, 'edit_view_filters' ) );
 			add_action( 'p2p_init', array( $this, 'contact_user_p2p' ) );
 
 			add_action( 'manage_' . self::$user_category_taxonomy . '_custom_column', array( $this, 'manage_contact_column_body' ), 10, 3 );
@@ -102,9 +97,177 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			}
 
 			add_action( 'init', array( $this, 'check_primary_email_for_admin_notice' ) );
+			// For User setting page
+			add_action( 'manage_users_custom_column', array( $this, 'manage_export_user_columns' ), 15, 3 );
+			add_action( 'wp_ajax_rtbiz_export_contact', array( $this, 'rtbiz_export_contact' ) );
+			add_action( 'wp_ajax_rtbiz_export_all_contacts', array( $this, 'rtbiz_export_all_contacts' ) );
+			// for bulk action
+			add_action( 'admin_footer-users.php',  array( $this, 'add_export_user_bulk_action' ) );
+			add_action( 'load-users.php', array( $this, 'callback_rtbiz_bulk_action' ) );
+			add_action( 'admin_notices', array( $this, 'exported_admin_notice' ) );
+			// end
 		}
 
-		function check_primary_email_for_admin_notice(){
+
+		/**
+		 * admin notice for exported users
+		 */
+		function exported_admin_notice() {
+			global $pagenow;
+
+			if ( 'users.php' == $pagenow && isset( $_REQUEST['exported'] ) && (int) $_REQUEST['exported'] ) {
+				$message = sprintf( _n( 'Contacts exported to rtbiz Contacts.', '%s Contacts exported to rtbiz Contacts.', $_REQUEST['exported'] ), number_format_i18n( $_REQUEST['exported'] ) );
+				echo "<div class='updated'><p>{$message}</p></div>";
+			}
+		}
+
+		/**
+		 * Call back method for bulk export action from users.php to export rtbiz contacts
+		 */
+		function callback_rtbiz_bulk_action() {
+			if ( empty( $_REQUEST['users'] ) || empty( $_REQUEST['action'] ) || 'rtexport' != $_REQUEST['action'] ) {
+				return ;
+			}
+			check_admin_referer( 'bulk-users' );
+			$userids = $_REQUEST['users'];
+			if ( ! empty( $userids ) ) {
+				$this->export_biz_contacts( $userids );
+			}
+			$redirect = 'users.php';
+			$sendback = add_query_arg( array( 'exported' => count( $userids ) ), $redirect );
+
+			wp_redirect( $sendback );
+			exit();
+		}
+
+		/**
+		 * This method adds bulk action option to export WordPress users to rtBiz Contacts via JS hack.
+		 */
+		function add_export_user_bulk_action() {
+			?>
+			<script type="text/javascript">
+				jQuery(document).ready(function() {
+					jQuery('<option>').val('rtexport').text('<?php _e( 'Export to contacts' )?>').appendTo("select[name='action']");
+				});
+			</script>
+
+			<?php
+		}
+
+		/**
+		 * AJAX callback for single user export from user.php
+		 */
+		function rtbiz_export_contact() {
+			check_ajax_referer( 'rt-biz-export-'.$_POST['id'], 'nonce' );
+			$return_array = array();
+			$postid = $this->export_biz_contact( $_POST['id'] );
+			if ( ! empty( $postid ) ) {
+				$post = get_post( $postid );
+				$return_array['html'] = '<a href="'.get_edit_post_link( $postid ).'">'.$post->post_title.'</a>';
+				$return_array['status'] = true;
+			}
+			echo json_encode( $return_array );
+			die();
+		}
+
+		/**
+		 * Export call contacts from wp_users to rtcontact
+		 */
+		function rtbiz_export_all_contacts() {
+			check_ajax_referer( 'rt-biz-export-all', 'nonce' );
+			$return = array();
+			$return['complete'] = false;
+			//			$return['message'] = '';
+			$offset = 0;
+			if ( ! empty( $_POST['offset'] ) ){
+				$offset = intval( $_POST['offset'] );
+			}
+			$limit = 25;
+			$users = new WP_User_Query( array( 'fields' => 'ID', 'number' => $limit, 'offset' => $offset ) );
+
+			$count = $this->export_biz_contacts( $users->get_results() );
+			$return['count'] = $count;
+			$return['offset'] = $limit + $offset;
+			$return['contact_processed'] = count( $users->get_results() );
+			if ( $users->get_total() <= $return['offset'] ){
+				$return['complete'] = true;
+			}
+			echo json_encode( $return );
+			die();
+		}
+
+		/**
+		 * @param array $ids
+		 *  bulk Map users to rtbiz contacts
+		 *
+		 * @return int count
+		 */
+		function export_biz_contacts( $ids ){
+			$count = 0;
+			foreach ( $ids as $id ) {
+				$possts = rt_biz_get_contact_for_wp_user( $id );
+
+				if ( empty( $possts ) ) {
+					$postid = $this->export_biz_contact( $id );
+					if ( $postid ) {
+						$count = $count + 1;
+					}
+				}
+			}
+			return $count;
+		}
+
+		/**
+		 * @param $id int WP_USER ID
+		 * export single contact from user to rtbiz contact
+		 * it will check if contact exists then it will map or else create new contact and will map with p2p
+		 * @return mixed|null
+		 */
+		function export_biz_contact( $id ) {
+			$user = get_user_by( 'id', $id );
+			$email = $user->user_email;
+			$post_id = null;
+			$meta_query_args = array(
+				array(
+					'key'   => Rt_Entity::$meta_key_prefix . $this->primary_email_key,
+					'value' => $email,
+				),
+			);
+			$args = array( 'post_type' => rt_biz_get_contact_post_type(), 'meta_query' => $meta_query_args );
+			$posts = get_posts( $args );
+
+			if ( biz_is_primary_email_unique( $email ) && empty( $posts ) ) {
+				$post_id = rt_biz_add_contact( $user->display_name, '',$email );
+			} else if ( ! empty( $posts ) ) {
+				$post_id = $posts[0]->ID;
+			}
+			if ( ! empty( $post_id ) ) {
+				$this->connect_contact_to_user( $post_id, $id );
+			}
+			return $post_id;
+		}
+
+		/**
+		 * @param $value
+		 * @param $column_name
+		 * @param $id
+		 *  Call back for managing user columns for exporter
+		 * @return string
+		 */
+		function manage_export_user_columns( $value, $column_name, $id ) {
+			if ( 'p2p-to-'.$this->post_type.'_to_user' == $column_name ) {
+				$posts = rt_biz_get_contact_for_wp_user( $id );
+				if ( ! empty( $posts ) ) {
+					return '<a href="'.get_edit_post_link( $posts[0]->ID ).'">'.$posts[0]->post_title.'</a>';
+				} else {
+					$nonce = wp_create_nonce( 'rt-biz-export-'.$id );
+					return '<button type="button" class="rtbiz-export button" data-id="'.$id.'">Export</button><input type="hidden" class="rtbiz-export-nonce" value="'.$nonce.'">';
+				}
+			}
+
+		}
+
+		function check_primary_email_for_admin_notice() {
 			if ( isset( $_REQUEST['post'] ) && get_post_type( $_REQUEST['post'] ) == rt_biz_get_contact_post_type() ) {
 				if ( $primary_unique_meta = get_user_meta( get_current_user_id(), Rt_Entity::$meta_key_prefix . 'unique_primary_email_' . $_REQUEST['post'], true ) ) {
 					add_action( 'admin_notices', array( $this, 'primary_email_not_unique' ) );
@@ -116,19 +279,19 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			}
 		}
 
-		function manage_contact_column_header( $columns ){
+		function manage_contact_column_header( $columns ) {
 			unset( $columns['posts'] );
-			$columns['posts']         = $this->labels['name'];
+			$columns['posts'] = $this->labels['name'];
 			return $columns;
 		}
 
-		function manage_contact_column_body( $display, $column, $term_id ){
+		function manage_contact_column_body( $display, $column, $term_id ) {
 		}
 
 		/**
 		 * Registers Meta Box for Rt_contact Meta Fields
 		 */
-		function contact_meta_boxes( ) {
+		function contact_meta_boxes() {
 			global $rt_access_control;
 			add_meta_box( 'rt-biz-acl-details', __( 'Profile-level Access' ), array( $rt_access_control, 'profile_level_permission' ), $this->post_type, 'side', 'default' );
 		}
@@ -138,18 +301,18 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		function contact_user_p2p(){
 			p2p_register_connection_type( array(
-				                              'name' => $this->post_type . '_to_user',
-				                              'from' => $this->post_type,
-				                              'to' => 'user',
-				                              'cardinality' => 'one-to-one',
-				                              'admin_column' => 'any',
-				                              'from_labels' => array(
-					                                               'column_title' => 'User',
-															  ),
-				                              'to_labels' => array(
-				                                                    'column_title' => 'Contact',
-															  ),
-										) );
+				'name' => $this->post_type . '_to_user',
+				'from' => $this->post_type,
+				'to' => 'user',
+				'cardinality' => 'one-to-one',
+				'admin_column' => 'any',
+				'from_labels' => array(
+					'column_title' => 'User',
+				),
+				'to_labels' => array(
+					'column_title' => 'Contact',
+				),
+			) );
 		}
 
 		/**
@@ -208,29 +371,24 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					                       self::$user_category_taxonomy => $term->slug,
 				                       ) );
 
-				$subsubsub[] = "<li><a href='edit.php?post_type=".rt_biz_get_contact_post_type().'&'.self::$user_category_taxonomy.'='.$term->slug."' class='".$current."'>".__( $term->name )."<span class='count'> (".count( $posts->posts ).')</span></a></li>';
+				$subsubsub[ $term->slug ] = "<li><a href='edit.php?post_type=".rt_biz_get_contact_post_type().'&'.self::$user_category_taxonomy.'='.$term->slug."' class='".$current."'>".__( $term->name )."<span class='count'> (".count( $posts->posts ).')</span></a></li>';
 			}
-			$posts = new WP_Query( array(
-				'post_type' => $this->post_type,
-				'post_status' => 'trash',
-				'nopaging' => true,
-			) );
-			$current = '';
-			if ( $check_post_status && 'trash' == $_REQUEST['post_status'] ){
-				$current  = 'current';
-				$check_post_status = false;
+
+			// We are removing publish status since we don't need it. All contacts will be in publish status. So it doen't make any sense.
+			if ( ! empty( $views['publish'] ) ) {
+				unset( $views['publish'] );
 			}
-			$subsubsub[] = "<li><a href='edit.php?post_type=".rt_biz_get_contact_post_type()."&post_status=trash' class='".$current."'>".__( 'Trash' )."<span class='count'> (". $posts->post_count .')</span></a></li>';
-			$current = '';
-			if ( $allflag ){
-				$current = 'current';
+
+			// Check if it's request for all contacts. If it's a custom filter request for any user category then remove current class from "All" link.
+			if ( ! $allflag && ! empty( $views['all'] ) ) {
+				$views['all'] = str_replace( 'current', '', $views['all'] );
 			}
-			$something = wp_count_posts( rt_biz_get_contact_post_type() );
-			$top = array( "<a href='edit.php?post_type=".rt_biz_get_contact_post_type()."' class='".$current."'>".__( 'All' )." <span class='count'> (".$something->publish.')</span></a>' );
-			echo '<ul class="subsubsub">';
-			echo implode( ' | ', array_merge( $top, $subsubsub ) );
-			echo '</ul>';
-			//			return $views;
+
+			// Merge Custom filter links with existing views.
+			$views = array_merge( $views, $subsubsub );
+
+			// Return new array.
+			return $views;
 		}
 
 
@@ -536,7 +694,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 				),
 			);
 
-			$this->meta_fields = apply_filters( 'rt_biz_person_meta_fields', $this->meta_fields );
+			$this->meta_fields = apply_filters( 'rt_biz_contact_meta_fields', $this->meta_fields );
 		}
 
 		/**
@@ -808,11 +966,11 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		function add_contact( $name, $description = '', $email = '' ) {
 			$contact_id = wp_insert_post( array(
-				                              'post_title'   => $name,
-				                              'post_content' => $description,
-				                              'post_type'    => $this->post_type,
-				                              'post_status'  => 'publish',
-			                              ) );
+				'post_title'   => $name,
+				'post_content' => $description,
+				'post_type'    => $this->post_type,
+				'post_status'  => 'publish',
+			) );
 			if ( ! empty( $email ) ){
 				rt_biz_update_entity_meta( $contact_id, $this->primary_email_key, $email );
 			}
@@ -827,13 +985,13 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		function get_by_email( $email ) {
 			return ( ! empty( $email ) ) ? get_posts( array(
-				                                          'meta_key'    => self::$meta_key_prefix . $this->primary_email_key,
-				                                          // primary email
-				                                          'meta_value'  => $email,
-				                                          'post_type'   => $this->post_type,
-				                                          'post_status' => 'any',
-				                                          'nopaging'    => true,
-			                                          ) ) : array();
+				'meta_key'    => self::$meta_key_prefix . $this->primary_email_key,
+				// primary email
+				'meta_value'  => $email,
+				'post_type'   => $this->post_type,
+				'post_status' => 'any',
+				'nopaging'    => true,
+			) ) : array();
 		}
 
 		/**
@@ -845,12 +1003,12 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		function get_contact_for_wp_user( $user_id ) {
 			return get_posts( array(
-				                  'connected_type'  => $this->post_type . '_to_user',
-				                  'connected_items' => $user_id,
-				                  'post_type'       => $this->post_type,
-				                  'post_status'     => 'any',
-				                  'nopaging'        => true,
-			                  ) );
+				'connected_type'  => $this->post_type . '_to_user',
+				'connected_items' => $user_id,
+				'post_type'       => $this->post_type,
+				'post_status'     => 'any',
+				'nopaging'        => true,
+			) );
 		}
 
 		/**

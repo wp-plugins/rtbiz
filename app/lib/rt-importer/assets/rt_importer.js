@@ -20,6 +20,8 @@ jQuery( document ).ready( function() {
 		},
 		initMapSubmit: function(){
 			jQuery( '#map_submit' ).click( function () {
+				jQuery(this ).next('.rt-lib-spinner' ).show();
+				var that = this;
 				var data = {
 					action: 'rtlib_import',
 					type: 'gravity',
@@ -32,6 +34,8 @@ jQuery( document ).ready( function() {
 					failCount = 0;
 					forceImport = false;
 					jQuery( '#mapping-form' ).html( response );
+					jQuery(that ).next('.rt-lib-spinner' ).hide();
+
 				} );
 			} );
 		},
@@ -567,6 +571,7 @@ jQuery( document ).ready( function() {
 		initEnableMapping: function(){
 			jQuery( '.rtlib_enable_mapping' ).on( 'change', function ( e ) {
 				e.preventDefault();
+				jQuery(this ).next('.rt-lib-spinner' ).show();
 				var update_mapping_id = jQuery( this ).data( 'mapping-id' );
 				var that = this;
 				jQuery.ajax( {
@@ -585,9 +590,11 @@ jQuery( document ).ready( function() {
 						        } else {
 							        alert( 'error in updating mapping from server' );
 						        }
+						        jQuery(that ).next('.rt-lib-spinner' ).hide();
 					        },
 					        error: function ( xhr, textStatus, errorThrown ) {
-						        alert( 'error in update ' );
+						        alert( 'error in update while communicating to server' );
+						        jQuery(that ).next('.rt-lib-spinner' ).hide();
 					        }
 
 				        } );
@@ -601,6 +608,7 @@ jQuery( document ).ready( function() {
 					e.preventDefault();
 					return false;
 				}
+				jQuery(this ).next('.rt-lib-spinner' ).show();
 				var del_mapping_id = jQuery( this ).data( 'mapping-id' );
 				var that = this;
 				jQuery.ajax( {
@@ -613,6 +621,7 @@ jQuery( document ).ready( function() {
 					        },
 					        success: function ( data ) {
 						        if ( data.status ) {
+							        jQuery(that ).next('.rt-lib-spinner' ).hide();
 							        jQuery( '#mapping_' + del_mapping_id ).fadeOut( 500, function () {
 								        jQuery( this ).remove();
 							        } );
@@ -622,6 +631,7 @@ jQuery( document ).ready( function() {
 					        },
 					        error: function ( xhr, textStatus, errorThrown ) {
 						        alert( 'error in remove ' );
+						        jQuery(that ).next('.rt-lib-spinner' ).hide();
 					        }
 
 				        } );

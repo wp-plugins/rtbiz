@@ -149,13 +149,18 @@
                     }
                 } elseif ( $action == 'object' ) {
                     $res = $wp_filesystem;
+                } elseif ( $action == 'unzip' ) {
+	                $unzipfile = unzip_file( $file, $destination );
+	                if ( $unzipfile ) {
+		                $res = true;
+	                }
                 }
                 if ( isset( $res ) && ! $res ) {
                     $this->killswitch = true;
                 }
 
                 if ( ! $res ) {
-                    add_action( "redux/page/{$parent->args['opt_name']}/form/before", array( $this, 'ftp_form' ) );
+                    add_action( "redux/page/{$this->parent->args['opt_name']}/form/before", array( $this, 'ftp_form' ) );
                 }
 
                 return $res;

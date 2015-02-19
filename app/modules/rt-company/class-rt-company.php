@@ -43,8 +43,6 @@ if ( ! class_exists( 'Rt_Company' ) ) {
 			$this->setup_meta_fields();
 			add_action( 'init', array( $this, 'init_entity' ) );
 		}
-
-
 		/**
 		 *  Init Meta Fields
 		 */
@@ -172,7 +170,7 @@ if ( ! class_exists( 'Rt_Company' ) ) {
 				),
 			);
 
-			$this->meta_fields = apply_filters( 'rt_biz_organization_meta_fields', $this->meta_fields );
+			$this->meta_fields = apply_filters( 'rt_biz_company_meta_fields', $this->meta_fields, $this );
 		}
 
 		/**
@@ -314,6 +312,21 @@ if ( ! class_exists( 'Rt_Company' ) ) {
 			$cols = parent::post_table_columns( $cols );
 			return $cols;
 
+		}
+
+		/**
+		 * Managing post table columns
+		 * @param $column
+		 * @param $post_id
+		 */
+		public function manage_post_table_columns( $column, $post_id ){
+			switch ( $column ) {
+				case 'country':
+					echo esc_attr( implode( ' , ', get_post_meta( $post_id, Rt_Entity::$meta_key_prefix . 'account_country' ) ) );
+					break;
+			}
+
+			parent::manage_post_table_columns( $column, $post_id );
 		}
 		/**
 		 * @param $name

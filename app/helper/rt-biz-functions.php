@@ -140,6 +140,11 @@ function rt_biz_get_company_labels() {
 	return $rt_company->labels;
 }
 
+function rt_biz_get_contact_group_labels() {
+	global $rt_contact;
+	return $rt_contact->contact_group_labels;
+}
+
 /**
  * Returns contact post type
  *
@@ -572,7 +577,7 @@ function rt_biz_get_user_department( $user_ID ) {
  * @return string
  * @since rt-BIZ
  */
-function rtbiz_text_diff( $left_string, $right_string, $args = null ) {
+function rt_biz_text_diff( $left_string, $right_string, $args = null ) {
 	$defaults = array( 'title' => '', 'title_left' => '', 'title_right' => '' );
 	$args     = wp_parse_args( $args, $defaults );
 
@@ -614,18 +619,18 @@ function rtbiz_text_diff( $left_string, $right_string, $args = null ) {
 }
 
 // Setting ApI
-function biz_get_redux_settings() {
+function rt_biz_get_redux_settings() {
 	if ( ! isset( $GLOBALS[ Rt_Biz_Setting::$biz_opt ] ) ) {
 		$GLOBALS[ Rt_Biz_Setting::$biz_opt ] = get_option( Rt_Biz_Setting::$biz_opt, array() );
 	}
 	return $GLOBALS[ Rt_Biz_Setting::$biz_opt ];
 }
 
-function biz_is_primary_email_unique( $email, $postid = null ) {
+function rt_biz_is_primary_email_unique( $email, $postid = null ) {
 	global $rt_contact;
 	$meta_query_args = array(
 		array(
-			'key'   => Rt_Entity::$meta_key_prefix . $rt_contact->primary_email_key,
+			'key'   => Rt_Entity::$meta_key_prefix . Rt_Contact::$primary_email_key,
 			'value' => $email,
 		),
 	);
@@ -641,16 +646,17 @@ function biz_is_primary_email_unique( $email, $postid = null ) {
 	return false;
 }
 
-function rtbiz_export_wp_users_to_contacts(){
+function rt_biz_export_wp_users_to_contacts(){
 	ob_start();
-	rtbiz_export_wp_users_to_contacts_dashborad( '' );
+	rt_biz_export_wp_users_to_contacts_dashborad( '' );
 	return ob_get_clean();
 }
 
 
-function rtbiz_export_wp_users_to_contacts_dashborad( $btnhtml = null ){
+function rt_biz_export_wp_users_to_contacts_dashborad( $btnhtml = null ){
 	$nonce = wp_create_nonce( 'rt-biz-export-all' );
 	$users = new WP_User_Query( array( 'fields' => 'ID', 'number' => 1 ) );
+	$contact_labels = rt_biz_get_contact_labels();
 	?>
 	<div class="rtbiz-exporter-container">
 		<?php if ( empty( $btnhtml ) ){ ?>
@@ -660,11 +666,11 @@ function rtbiz_export_wp_users_to_contacts_dashborad( $btnhtml = null ){
 		<input id="rtbiz-contact-import-nonce" type="hidden" value="<?php echo $nonce ?>" />
 		<span id="rtbiz-import-message" class="rtbiz-exporter-message"></span>
 		<div class="contact-update" style="display: none;">
-			<p> <?php _e( 'Syncing contacts :' ); ?> <span
+			<p> <?php echo __( 'Syncing' ) . ' ' . $contact_labels['name'] . ' :'; ?> <span
 					id='rtbiz-contact-count-proceed'>0</span></p>
 		</div>
 		<div class="contact-synced" style="display: none;">
-			<p> <?php _e( 'All contact synced!' ); ?> </p>
+			<p> <?php _e( 'All ' . $contact_labels['name'] . ' synced!' ); ?> </p>
 		</div>
 		<div id="rtbiz-contact-importer-bar"></div>
 
@@ -674,7 +680,7 @@ function rtbiz_export_wp_users_to_contacts_dashborad( $btnhtml = null ){
 <?php
 }
 
-function biz_is_primary_email_unique_company( $email ) {
+function rt_biz_is_primary_email_unique_company( $email ) {
 	$meta_query_args = array(
 		array(
 			'key'     => Rt_Entity::$meta_key_prefix.Rt_Company::$primary_email,
@@ -689,7 +695,7 @@ function biz_is_primary_email_unique_company( $email ) {
 	return false;
 }
 
-function rtbiz_get_contact_edit_link( $email ){
+function rt_biz_get_contact_edit_link( $email ){
 	$post = rt_biz_get_contact_by_email( $email );
 	if ( ! empty( $post ) ){
 		return get_edit_post_link( $post[0]->ID );
@@ -700,7 +706,7 @@ function rtbiz_get_contact_edit_link( $email ){
 }
 
 
-function rtbiz_get_tex_diff( $post_id, $texonomy ){
+function rt_biz_get_tex_diff( $post_id, $texonomy ){
 	$post_terms = wp_get_post_terms( $post_id, $texonomy );
 	$postterms  = array_filter( $_POST['tax_input'][ $texonomy ] );
 	$termids    = wp_list_pluck( $post_terms, 'term_id' );
@@ -718,7 +724,7 @@ function rtbiz_get_tex_diff( $post_id, $texonomy ){
 		$diff_tax2[] = $tmp->name;
 	}
 
-	$difftxt = rtbiz_text_diff( implode( ' ', $diff_tax2 ), implode( ' ', $diff_tax1 ) );
+	$difftxt = rt_biz_text_diff( implode( ' ', $diff_tax2 ), implode( ' ', $diff_tax1 ) );
 
 	if ( ! empty( $difftxt ) || $difftxt != '' ) {
 		$tax = get_taxonomy( $texonomy );

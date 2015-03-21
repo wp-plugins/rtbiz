@@ -4,7 +4,7 @@ Donate Link:       http://rtcamp.com/donate
 Tags:              contacts, companies, people management, business, email parsing, attributes, user groups, access control, acl, wordpress
 Requires at least: 4.1
 Tested up to:      4.1
-Stable tag:        1.2.7
+Stable tag:        1.2.8
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,8 +68,16 @@ Please refer to the documentation.
 
 == Changelog ==
 
+= 1.2.8 =
+* Remove Editor Support from contact and companies and added excerpt support
+* rt-Lib Mailbox Library updated
+* rtBiz helper function prefix updated
+* Filters added for contacts & companies label
+* Docs update
+* Bug Fixes
+
 = 1.2.7 =
-* Bug fixes
+* Lots of Bug fixes
 
 = 1.2.6 =
 * WP User => rtBiz Contact Importer added.

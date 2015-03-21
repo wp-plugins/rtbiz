@@ -24,7 +24,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		/**
 		 * @var string
 		 */
-		public $primary_email_key   = 'contact_primary_email';
+		static $primary_email_key   = 'contact_primary_email';
 		/**
 		 * @var string
 		 */
@@ -47,26 +47,21 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		static $vendor_category_slug = 'vendors';
 
+		/**
+		 * Labels array for Contact Group Taxonomy
+		 *
+		 * @var array
+		 */
+		public $contact_group_labels;
 
 		/**
 		 *
 		 */
 		public function __construct() {
 			parent::__construct( 'rt_contact' );
-			$this->labels = array(
-				'name' => __( 'Contacts' ),
-				'singular_name' => __( 'Contact' ),
-				'menu_name' => __( 'Contact' ),
-				'all_items' => __( 'All Contacts' ),
-				'add_new' => __( 'Add New' ),
-				'add_new_item' => __( 'Add Contact' ),
-				'edit_item' => __( 'Edit Contact' ),
-				'new_item' => __( 'New Contact' ),
-				'view_item' => __( 'View Contact' ),
-				'search_items' => __( 'Search Contact' ),
-				'not_found' => __( 'No Contact found' ),
-				'not_found_in_trash' => __( 'No Contact found in Trash' ),
-			);
+
+			add_action( 'init', array( $this, 'init_labels' ), 9 );
+
 			$this->setup_meta_fields();
 			add_action( 'init', array( $this, 'init_entity' ) );
 
@@ -108,6 +103,22 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			// end
 		}
 
+		function init_labels() {
+			$this->labels = apply_filters( 'rt_biz_contact_labels', array(
+				'name' => __( 'Contacts' ),
+				'singular_name' => __( 'Contact' ),
+				'menu_name' => __( 'Contact' ),
+				'all_items' => __( 'All Contacts' ),
+				'add_new' => __( 'Add New' ),
+				'add_new_item' => __( 'Add Contact' ),
+				'edit_item' => __( 'Edit Contact' ),
+				'new_item' => __( 'New Contact' ),
+				'view_item' => __( 'View Contact' ),
+				'search_items' => __( 'Search Contact' ),
+				'not_found' => __( 'No Contact found' ),
+				'not_found_in_trash' => __( 'No Contact found in Trash' ),
+			) );
+		}
 
 		/**
 		 * admin notice for exported users
@@ -229,14 +240,14 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			$post_id = null;
 			$meta_query_args = array(
 				array(
-					'key'   => Rt_Entity::$meta_key_prefix . $this->primary_email_key,
+					'key'   => Rt_Entity::$meta_key_prefix . self::$primary_email_key,
 					'value' => $email,
 				),
 			);
 			$args = array( 'post_type' => rt_biz_get_contact_post_type(), 'meta_query' => $meta_query_args );
 			$posts = get_posts( $args );
 
-			if ( biz_is_primary_email_unique( $email ) && empty( $posts ) ) {
+			if ( rt_biz_is_primary_email_unique( $email ) && empty( $posts ) ) {
 				$post_id = rt_biz_add_contact( $user->display_name, '',$email );
 			} else if ( ! empty( $posts ) ) {
 				$post_id = $posts[0]->ID;
@@ -299,7 +310,8 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		/**
 		 * Create Contact user p2p connection defination
 		 */
-		function contact_user_p2p(){
+		function contact_user_p2p() {
+			$contact_labels = $this->labels;
 			p2p_register_connection_type( array(
 				'name' => $this->post_type . '_to_user',
 				'from' => $this->post_type,
@@ -310,7 +322,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					'column_title' => 'User',
 				),
 				'to_labels' => array(
-					'column_title' => 'Contact',
+					'column_title' => $contact_labels['singular_name'],
 				),
 			) );
 		}
@@ -397,7 +409,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		function register_tax(){
 
-			$labels = array(
+			$this->contact_group_labels = apply_filters( 'rt_contact_groups_labels', array(
 				'name'                       => __( 'Contact Groups' ),
 				'singular_name'              => __( 'Contact Group' ),
 				'menu_name'                  => __( 'Contact Groups' ),
@@ -411,7 +423,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 				'separate_items_with_commas' => __( 'Separate Contact Groups with commas' ),
 				'add_or_remove_items'        => __( 'Add or remove Contact Groups' ),
 				'choose_from_most_used'      => __( 'Choose from the most popular Contact Groups' ),
-			);
+			) );
 
 			$editor_cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' );
 			$caps = array(
@@ -424,7 +436,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 				self::$user_category_taxonomy,
 				rt_biz_get_contact_post_type(),
 				array(
-					'labels' => $labels,
+					'labels' => $this->contact_group_labels,
 					'rewrite' => array( 'slug' => self::$user_category_taxonomy ),
 					'hierarchical' => true,
 					'show_admin_column' => true,
@@ -824,7 +836,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 * @param $post_id
 		 */
 		function save_meta_values( $post_id ) {
-			if ( isset( $_POST['contact_meta'][ $this->primary_email_key ] ) && empty( $_POST['contact_meta'][ $this->primary_email_key ] ) ){
+			if ( isset( $_POST['contact_meta'][ self::$primary_email_key ] ) && empty( $_POST['contact_meta'][ self::$primary_email_key ] ) ){
 				update_user_meta( get_current_user_id(), Rt_Entity::$meta_key_prefix . 'empty_primary_email_' . $_POST['post_ID'], true );
 			}
 			else {
@@ -832,8 +844,8 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			}
 			foreach ( $this->meta_fields as $field ) {
 				if ( isset( $_POST['contact_meta'][ $field['key'] ] ) && ! empty( $_POST['contact_meta'][ $field['key'] ] ) ) {
-					if ( $field['key'] == $this->primary_email_key ) {
-						if ( ! biz_is_primary_email_unique( $_POST['contact_meta'][ $field['key'] ], $_POST['post_ID'] ) ) {
+					if ( $field['key'] == self::$primary_email_key ) {
+						if ( ! rt_biz_is_primary_email_unique( $_POST['contact_meta'][ $field['key'] ], $_POST['post_ID'] ) ) {
 							update_user_meta( get_current_user_id(), Rt_Entity::$meta_key_prefix . 'unique_primary_email_' . $_POST['post_ID'], true );
 							continue;
 						}
@@ -925,7 +937,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 					break;
 
 				case 'contact_email':
-					$val = self::get_meta( $post_id, $this->primary_email_key );
+					$val = self::get_meta( $post_id, self::$primary_email_key );
 					if ( ! empty( $val ) ) {
 						$emails = array();
 						foreach ( $val as $e ) {
@@ -972,7 +984,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 				'post_status'  => 'publish',
 			) );
 			if ( ! empty( $email ) ){
-				rt_biz_update_entity_meta( $contact_id, $this->primary_email_key, $email );
+				rt_biz_update_entity_meta( $contact_id, self::$primary_email_key, $email );
 			}
 			return $contact_id;
 		}
@@ -985,7 +997,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 */
 		function get_by_email( $email ) {
 			return ( ! empty( $email ) ) ? get_posts( array(
-				'meta_key'    => self::$meta_key_prefix . $this->primary_email_key,
+				'meta_key'    => self::$meta_key_prefix . self::$primary_email_key,
 				// primary email
 				'meta_value'  => $email,
 				'post_type'   => $this->post_type,
@@ -1063,7 +1075,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			$check_exist_contact = get_posts(
 				array(
 					'post_type' 	=> $this->post_type,
-					'meta_key' 		=> self::$meta_key_prefix.$this->primary_email_key,
+					'meta_key' 		=> self::$meta_key_prefix.self::$primary_email_key,
 					'meta_value' 	=> $user->user_email,
 				)
 			);
@@ -1071,10 +1083,9 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 				$contact_id = $check_exist_contact[0]->ID;
 			}
 			else {
-				$contact_id = $this->add_contact( $user->display_name );
+				$contact_id = rt_biz_add_contact( $user->display_name, $user->user_email );
 			}
 			$this->connect_contact_to_user( $contact_id, $user_id );
-			Rt_Contact::update_meta( $contact_id, $this->primary_email_key, $user->user_email );
 			Rt_Contact::update_meta( $contact_id, $this->website_url_key, $user->user_url );
 		}
 
@@ -1088,7 +1099,7 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			$results = $wpdb->get_results( "select ID,display_name,user_email from $wpdb->users where user_email like '%{$query}%' or display_name like '%{$query}%' or user_nicename like '%{$query}%' ;" );
 			$arrReturn = array();
 			foreach ( $results as $author ) {
-				$arrReturn[] = array( 'id' => $author->ID, 'label' => $author->display_name, 'imghtml' => get_avatar( $author->user_email, 25 ), 'editlink' => rtbiz_get_contact_edit_link( $author->user_email ) );
+				$arrReturn[] = array( 'id' => $author->ID, 'label' => $author->display_name, 'imghtml' => get_avatar( $author->user_email, 25 ), 'editlink' => rt_biz_get_contact_edit_link( $author->user_email ) );
 			}
 			header( 'Content-Type: application/json' );
 			echo json_encode( $arrReturn );

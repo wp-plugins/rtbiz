@@ -66,6 +66,14 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 		 */
 		function init_entity() {
 			$this->register_post_type( $this->post_type, $this->labels );
+			add_action( 'admin_menu', array( $this, 'remove_metabox' ) );
+		}
+
+		function remove_metabox(){
+			$metabox_ids = apply_filters( 'rt_entity_remove_meta_box', array( 'commentstatusdiv' ) );
+			foreach ( $metabox_ids as $metabox_id ) {
+				remove_meta_box( $metabox_id, $this->post_type, 'normal' );
+			}
 		}
 
 		/**
@@ -86,7 +94,7 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 
 				add_filter( 'gettext', array( $this, 'change_publish_button' ), 10, 2 );
 
-				$settings = biz_get_redux_settings();
+				$settings = rt_biz_get_redux_settings();
 				if ( isset( $settings['offering_plugin'] ) && 'none' != $settings['offering_plugin'] ) {
 					add_filter( 'manage_edit-'.Rt_Offerings::$offering_slug .'_columns', array( $this, 'edit_offering_columns' ) );
 					add_filter( 'manage_'.Rt_Offerings::$offering_slug .'_custom_column', array( $this, 'add_offering_column_content' ), 10, 3 );
@@ -178,16 +186,16 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 			$post = get_post( $post_id );
 			if ( $_POST['post_title'] != $post->post_title ){
 				$body = '<strong>'.__( 'Contact Title' ).'</strong> : ';
-				$body .= rtbiz_text_diff( $post->post_title , $_POST['post_title'] );
+				$body .= rt_biz_text_diff( $post->post_title , $_POST['post_title'] );
 			}
 			if ( $_POST['content'] != $post->post_content ){
 				$body = '<strong>'.__( 'Contact Content' ).'</strong> : ';
-				$body .= rtbiz_text_diff( $post->post_content, $_POST['content'] );
+				$body .= rt_biz_text_diff( $post->post_content, $_POST['content'] );
 			}
 
 			if ( isset( $_POST['tax_input'] ) ) {
 				foreach ( $_POST['tax_input'] as $key => $val ){
-					$tmp = rtbiz_get_tex_diff( $post_id, $key );
+					$tmp = rt_biz_get_tex_diff( $post_id, $key );
 					if ( $tmp != '' ){
 						$body .= $tmp;
 						$flag = true;
@@ -211,13 +219,13 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 				}
 
 				if ( 'contact_primary_email' == $field['key'] ) {
-					if ( ! biz_is_primary_email_unique( $_POST['contact_meta'][ $field['key'] ] ) ) {
+					if ( ! rt_biz_is_primary_email_unique( $_POST['contact_meta'][ $field['key'] ] ) ) {
 						continue;
 					}
 				}
 
 				if ( $field['key'] == Rt_Company::$primary_email ){
-					if ( ! biz_is_primary_email_unique_company( $_POST['account_meta'][ $field['key'] ] ) ) {
+					if ( ! rt_biz_is_primary_email_unique_company( $_POST['account_meta'][ $field['key'] ] ) ) {
 						continue;
 					}
 				}
@@ -228,7 +236,7 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 					$filerpost = array_filter( $_POST[ $meta_key ][ $field['key'] ] );
 					$diff      = array_diff( $filerval, $filerpost );
 					$diff2 = array_diff( $filerpost, $filerval );
-					$difftxt = rtbiz_text_diff( implode( ' ', $diff ), implode( ' ', $diff2 ) );
+					$difftxt = rt_biz_text_diff( implode( ' ', $diff ), implode( ' ', $diff2 ) );
 					if ( ! empty( $difftxt ) || $difftxt != '' ) {
 						$skip_enter = str_replace( 'Enter', '', $field['label'] );
 						$body .= "<strong>{ $skip_enter }</strong> : ".$difftxt;
@@ -239,7 +247,7 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 					$val    = self::get_meta( $post_id, $field['key'], true );
 					$newval = $_POST[ $meta_key ][ $field['key'] ];
 					if ( $val != $newval ){
-						$difftxt = rtbiz_text_diff( $val, $newval );
+						$difftxt = rt_biz_text_diff( $val, $newval );
 						$skip_enter = str_replace( 'Enter','',$field['label'] );
 						$body .= "<strong>{ $skip_enter }</strong> : ".$difftxt;
 						$flag = true;
@@ -249,7 +257,7 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 			if ( $flag ) {
 				$user = wp_get_current_user();
 				$body = 'Updated by <strong>'.$user->display_name. '</strong> <br/>' .$body;
-				$settings  = biz_get_redux_settings();
+				$settings  = rt_biz_get_redux_settings();
 				$label             = $settings['menu_label'];
 				$data = array(
 					'comment_post_ID' => $post_id,
@@ -675,7 +683,7 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 		 * @param array $labels
 		 */
 		function register_post_type( $name, $labels = array() ) {
-			$args = array(
+			$args = apply_filters( 'rt_entity_register_post_type_args', array(
 				'labels' => $labels,
 				'public' => false,
 				'publicly_queryable' => false,
@@ -683,11 +691,11 @@ if ( ! class_exists( 'Rt_Entity' ) ) {
 				'show_in_nav_menus' => false,
 				'show_in_menu' => Rt_Biz::$dashboard_slug,
 				'show_in_admin_bar' => false,
-				'supports' => array( 'title', 'editor', 'author', 'comments', 'thumbnail' ),
+				'supports' => array( 'title', 'excerpt', 'author', 'comments', 'thumbnail' ),
 				'capability_type' => $name,
 				'map_meta_cap'       => true, //Required For ACL Without map_meta_cap Cap ACL isn't working.
 				//Default WordPress check post capability on admin page so we need to map custom post type capability with post capability.
-			);
+			), $name );
 			register_post_type( $name, $args );
 		}
 

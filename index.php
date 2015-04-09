@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.2.10
+  Version: 1.2.11
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.2.10' );
+	define( 'RT_BIZ_VERSION', '1.2.11' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -42,7 +42,6 @@ if ( ! defined( 'RT_BIZ_TEXT_DOMAIN' ) ) {
 
 include_once RT_BIZ_PATH . 'app/lib/rt-lib.php';
 include_once RT_BIZ_PATH . 'app/helper/rt-biz-functions.php';
-include_once RT_BIZ_PATH . 'app/vendor/taxonomy-metadata.php';
 
 /**
  * Description of class-rt-biz
@@ -195,6 +194,8 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			self::$instance->init_help();
 
 			self::$instance->init_tour();
+
+			self::$instance->init_taxonomy_metadata();
 
 			self::$instance->register_company_contact_connection();
 
@@ -379,9 +380,6 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 		function init_department() {
 			global $rtbiz_department;
 			$rtbiz_department = new RT_Departments();
-
-			$taxonomy_metadata = new Rt_Lib_Taxonomy_Metadata\Taxonomy_Metadata();
-			$taxonomy_metadata->activate();
 		}
 
 		function init_wc_product_taxonomy() {
@@ -395,7 +393,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			);
 
 			$settings = rt_biz_get_redux_settings();
-			$offering_plugin   = $settings['offering_plugin'];
+			$offering_plugin   = ! empty ( $settings['offering_plugin'] ) ? $settings['offering_plugin'] : '';
 			$to_register_posttype = array();
 			foreach ( Rt_Access_Control::$modules as $key => $value ){
 
@@ -422,14 +420,16 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			$rt_importer = new Rt_Importer( null, null, false );
 		}
 
-		function init_configuration(){
-			/*global $rt_configuration;
-			$editor_cap = rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' );
-			$arg = array(
-				'parent_slug' => Rt_Biz::$dashboard_slug,
-				'page_capability' => $editor_cap,
-			);
-			$rt_configuration = new RT_BIZ_Configuration( $arg );*/
+		function init_taxonomy_metadata(){
+			global $taxonomy_metadata;
+			if ( ! class_exists( 'Rt_Lib_Taxonomy_Metadata\Taxonomy_Metadata' ) ) {
+				include_once RT_BIZ_PATH . 'app/lib/rt-offerings/taxonomy-metadata.php';
+			}
+
+			if ( ! is_object( $taxonomy_metadata ) ){
+				$taxonomy_metadata = new Rt_Lib_Taxonomy_Metadata\Taxonomy_Metadata();
+				$taxonomy_metadata->activate();
+			}
 		}
 
 		/**

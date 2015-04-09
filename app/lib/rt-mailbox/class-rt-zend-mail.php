@@ -780,67 +780,76 @@ if ( ! class_exists( 'Rt_Zend_Mail' ) ) {
 					$tPart = $part->getPart( $rCount );
 					$responce = $this->parse_message( $tPart, $email, $message, $responce, $part_index );
 				}
-			} else if ( 'text/plain' == $ContentType ){
-				$responce['txtBody'] = $this->get_decoded_message( $part );
-				$responce['htmlBody'] = $responce['txtBody'];
-			} else if ( 'text/html' == $ContentType ){
-				$responce['htmlBody'] = $this->get_decoded_message( $part );
-				$responce['txtBody']  = strip_tags( $responce['htmlBody'] );
 			} else {
 				try {
 					$filename = $part->getHeader( 'content-disposition' )->getFieldValue( 'filename' );
-					if ( preg_match( '*filename=\"([^;]+)\"*', $filename, $matches ) ) {
-						if ( isset( $matches[1] ) ) {
-							$filename = trim( $matches[1] );
+				} catch ( Exception $e ) {
+					$filename = '';
+				}
+
+				if ( 'text/plain' == $ContentType && empty( $filename ) ){
+					$responce['txtBody'] = $this->get_decoded_message( $part );
+					$responce['htmlBody'] = $responce['txtBody'];
+				} else if ( 'text/html' == $ContentType && empty( $filename ) ){
+					$responce['htmlBody'] = $this->get_decoded_message( $part );
+					$responce['txtBody']  = strip_tags( $responce['htmlBody'] );
+				} else {
+
+					try {
+						$filename = $part->getHeader( 'content-disposition' )->getFieldValue( 'filename' );
+						if ( preg_match( '*filename=\"([^;]+)\"*', $filename, $matches ) ) {
+							if ( isset( $matches[1] ) ) {
+								$filename = trim( $matches[1] );
+							} else {
+								$filename = rtmb_get_extention( $ContentType );
+							}
 						} else {
 							$filename = rtmb_get_extention( $ContentType );
 						}
-					} else {
+					} catch ( Exception $e ) {
+						$e->getTrace();
 						$filename = rtmb_get_extention( $ContentType );
 					}
-				} catch ( Exception $e ) {
-					$e->getTrace();
-					$filename = rtmb_get_extention( $ContentType );
-				}
 
-				if ( trim( $filename ) == '' ) {
-					$filename = rtmb_get_extention( $ContentType );
-				}
-				$filedata   = $this->get_decoded_message( $part );
-				$upload_dir = wp_upload_dir( null );
-
-				/* append current time and part index with file name
-				   Fixed inline images parse with same name images.png*/
-				$filename   = time() . $part_index . '-' . sanitize_file_name( $filename );
-
-				if ( ! file_exists( $upload_dir ['path'] . "/$filename" ) ) {
-					$uploaded = wp_upload_bits( $filename, null, $filedata );
-				} else {
-					$uploaded['error'] = false;
-					$uploaded['file']  = $upload_dir ['path'] . "/$filename";
-					$uploaded['url']   = $upload_dir ['url'] . "/$filename";
-				}
-				if ( false == $uploaded['error'] ) {
-					rtmb_log( "[Attachement Created] File:{$uploaded['file']} ; URL: {$uploaded['url']}", 'mail-attachement.txt' );
-					$file                  = array();
-					$extn_array            = explode( '.', $filename );
-					$extn                  = $extn_array[ count( $extn_array ) - 1 ];
-					$file['file']          = $uploaded['file'];
-					$file['url']           = $uploaded['url'];
-					$file['filename']      = $filename;
-					$file['extn']          = $extn;
-					$file['type']          = $ContentType;
-					if ( $part->__isset( 'xattachmentid' ) ) {
-						$tmpval = $part->getHeader( 'xattachmentid' );
-						$file['xattachmentid'] = $tmpval->getFieldValue();
+					if ( trim( $filename ) == '' ) {
+						$filename = rtmb_get_extention( $ContentType );
 					}
-					$responce['attachements'][]        = $file;
-				} else {
-					error_log( 'Attachment Failed ... ' . esc_attr( $filename ) . '\r\n' );
-					ob_start();
-					error_log( var_export( $uploaded, true ) );
-					$data = ob_get_clean();
-					rtmb_log( "[Attachement Failed] Email: {$email};Message-Id: {$message->messageid}; Data : $data ", 'error-mail-attachement.txt' );
+					$filedata   = $this->get_decoded_message( $part );
+					$upload_dir = wp_upload_dir( null );
+
+					/* append current time and part index with file name
+					   Fixed inline images parse with same name images.png*/
+					$filename   = time() . $part_index . '-' . sanitize_file_name( $filename );
+
+					if ( ! file_exists( $upload_dir ['path'] . "/$filename" ) ) {
+						$uploaded = wp_upload_bits( $filename, null, $filedata );
+					} else {
+						$uploaded['error'] = false;
+						$uploaded['file']  = $upload_dir ['path'] . "/$filename";
+						$uploaded['url']   = $upload_dir ['url'] . "/$filename";
+					}
+					if ( false == $uploaded['error'] ) {
+						rtmb_log( "[Attachement Created] File:{$uploaded['file']} ; URL: {$uploaded['url']}", 'mail-attachement.txt' );
+						$file                  = array();
+						$extn_array            = explode( '.', $filename );
+						$extn                  = $extn_array[ count( $extn_array ) - 1 ];
+						$file['file']          = $uploaded['file'];
+						$file['url']           = $uploaded['url'];
+						$file['filename']      = $filename;
+						$file['extn']          = $extn;
+						$file['type']          = $ContentType;
+						if ( $part->__isset( 'xattachmentid' ) ) {
+							$tmpval = $part->getHeader( 'xattachmentid' );
+							$file['xattachmentid'] = $tmpval->getFieldValue();
+						}
+						$responce['attachements'][]        = $file;
+					} else {
+						error_log( 'Attachment Failed ... ' . esc_attr( $filename ) . '\r\n' );
+						ob_start();
+						error_log( var_export( $uploaded, true ) );
+						$data = ob_get_clean();
+						rtmb_log( "[Attachement Failed] Email: {$email};Message-Id: {$message->messageid}; Data : $data ", 'error-mail-attachement.txt' );
+					}
 				}
 			}
 			return $responce;

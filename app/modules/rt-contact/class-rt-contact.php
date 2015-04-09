@@ -62,8 +62,9 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 
 			add_action( 'init', array( $this, 'init_labels' ), 9 );
 
-			$this->setup_meta_fields();
 			add_action( 'init', array( $this, 'init_entity' ) );
+
+			add_action( 'init', array( $this, 'setup_meta_fields' ) );
 
 			add_action( 'wp_ajax_seach_user_from_name', array( $this, 'get_user_from_name' ) );
 
@@ -85,8 +86,10 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 			 * Add ACL meta box
 			 */
 			global $rt_access_control;
-			$current_user = new WP_User( get_current_user_id() );
-			if ( $current_user->has_cap( 'create_users' ) ){
+			if ( ! empty( $_REQUEST['post'] ) ){
+				$_REQUEST['post_type'] = get_post_type( $_REQUEST['post'] );
+			}
+			if ( ! empty( $_REQUEST['post_type'] ) && $_REQUEST['post_type'] = $this->post_type && current_user_can( 'create_users' ) ){
 				add_action( 'rt_biz_entity_meta_boxes', array( $this, 'contact_meta_boxes' ) );
 				add_action( 'rt_biz_save_entity_meta', array( $rt_access_control, 'save_profile_level_permission' ) );
 			}
@@ -449,33 +452,36 @@ if ( ! class_exists( 'Rt_Contact' ) ) {
 		 *
 		 */
 		function add_defualt_categories_on_activate(){
-
-			$default_categories = array(
-				array(
-					'name' => 'Employees',
-					'slug' => self::$employees_category_slug,
-				),
-				array(
-					'name' => 'Customers',
-					'slug' => self::$customer_category_slug,
-				),
-				array(
-					'name' => 'Vendors',
-					'slug' => self::$vendor_category_slug,
-				),
-			);
-
-			foreach ( $default_categories as $category ) {
-
-				wp_insert_term(
-					$category['name'], // the term
-					self::$user_category_taxonomy, // the taxonomy
+			$isSyncOpt = get_option( 'rtbiz_contact_category_default' );
+			if ( empty( $isSyncOpt ) || 'true' === $isSyncOpt ){
+				$default_categories = array(
 					array(
-						'slug' => $category['slug'],
-					)
+						'name' => 'Employees',
+						'slug' => self::$employees_category_slug,
+					),
+					array(
+						'name' => 'Customers',
+						'slug' => self::$customer_category_slug,
+					),
+					array(
+						'name' => 'Vendors',
+						'slug' => self::$vendor_category_slug,
+					),
 				);
-			}
 
+				foreach ( $default_categories as $category ) {
+					if ( ! term_exists( $category['name'], self::$user_category_taxonomy ) ){
+						wp_insert_term(
+							$category['name'], // the term
+							self::$user_category_taxonomy, // the taxonomy
+							array(
+								'slug' => $category['slug'],
+							)
+						);
+					}
+				}
+				update_option( 'rtbiz_contact_category_default', 'false' );
+			}
 		}
 		/**
 		 *  Init Meta Fields

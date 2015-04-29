@@ -1,3 +1,64 @@
+.clear{
+    clear: both;
+}
+
+#rtmailbox-page #mailbox-list>div{
+    background-color: #F5F5DC;
+    padding: 10px;
+}
+
+#rtmailbox-page #rtmailbox-wrap{
+    padding: 10px;
+}
+
+#rtmailbox-page .rtmailbox-row{
+    margin-bottom: 10px;
+}
+#rtmailbox-page .rtmailbox-row>label{
+    display: inline-block;
+    width: 25%;
+    vertical-align:top;
+}
+
+/* provider list css */
+#rtmailbox-page .rtmailbox-row ul{
+    display: inline-block;
+}
+
+#rtmailbox-page .rtmailbox-row ul.rtmailbox_provider_list li{
+    margin-left: 10px;
+    float: left;
+}
+
+#rtmailbox-page div.mailbox-folder-list{
+    float: right;
+    width: 75%;
+}
+
+#rtmailbox-page .rtmailbox-row div.mailbox-folder-list>ul{
+    margin: 0px;
+}
+
+#rtmailbox-page .rtmailbox-row div.mailbox-folder-list>ul ul{
+    display: inline-block;
+    width: 50%;
+}
+
+#rtmailbox-page .rtmailbox-row div.mailbox-folder-list ul li {
+    padding-bottom: 5px;
+}
+
+.rtmailbox-maillist-action{
+    display: inline-block;
+    float: right;
+}
+
+.rtmailbox-spinner {
+    display: none;
+}
+
+
+/*
 .nav-tab-wrapper{
 	margin-top: 10px;
 	margin-bottom: 30px;
@@ -95,10 +156,6 @@ form#frm-replay-by-email div.form-body{
 	padding: 5px;
 }
 
-.rtmailbox-maillist-action{
-	display: inline-block;
-	float: right;
-}
 
 .rtmailbox-severtype-container{
 	margin: 10px 0px;
@@ -126,3 +183,30 @@ table#rtmailbox-container th, table#rtmailbox-container td {
 	display: none;
 	color: #cd0a0a !important;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

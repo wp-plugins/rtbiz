@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.2.14
+  Version: 1.2.15
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.2.14' );
+	define( 'RT_BIZ_VERSION', '1.2.15' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -291,12 +291,16 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 		function plugin_activation_redirect() {
 			// Add the transient to redirect
-			set_transient( '_rtbiz_activation_redirect', true, 30 );
+			if ( is_plugin_active( 'rtbiz-helpdesk/rtbiz-helpdesk.php' ) ){
+				set_transient( '_rthd_activation_redirect', true, 30 );
+			} else{
+				set_transient( '_rtbiz_activation_redirect', true, 30 );
+			}
 		}
 
 		function init_rt_mailbox(){
 			global $rt_MailBox ;
-			$rt_MailBox = new Rt_Mailbox( trailingslashit( RT_BIZ_PATH ) . 'index.php', Rt_Access_Control::$modules, null, null, false );
+			$rt_MailBox = new Rt_Mailbox( trailingslashit( RT_BIZ_PATH ) . 'index.php' );
 		}
 
 		function init_attributes() {
@@ -309,15 +313,12 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 		 */
 		function init_menu_order() {
 
-			global $rtbiz_offerings;
-
 			$this->menu_order = array(
 				self::$dashboard_slug,
 				'edit.php?post_type=' . rt_biz_get_contact_post_type(),
 				'edit-tags.php?taxonomy='.Rt_Contact::$user_category_taxonomy . '&post_type=' . rt_biz_get_contact_post_type(),
 			);
 
-			$settings = rt_biz_get_redux_settings();
 			$this->menu_order[] = 'edit.php?post_type=' . rt_biz_get_company_post_type();
 			$this->menu_order[] = 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type();
 
@@ -331,10 +332,6 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 
 			if ( class_exists( 'Rt_Biz_Attributes' ) ) {
 				$this->menu_order[] = Rt_Biz_Attributes::$attributes_page_slug;
-			}
-
-			if ( class_exists( 'Rt_Mailbox' ) ) {
-				$this->menu_order[] = Rt_Mailbox::$page_name;
 			}
 
 			if ( class_exists( 'Rt_Importer' ) ) {
@@ -408,8 +405,8 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 				'assign_terms' => $editor_cap,
 			);
 
-			$settings = rt_biz_get_redux_settings();
-			$offering_plugin   = ! empty ( $settings['offering_plugin'] ) ? $settings['offering_plugin'] : '';
+			$settings = rt_biz_get_offering_selection_setting();
+			$offering_plugin   = ! empty ( $settings ) ? $settings : array() ;
 			$to_register_posttype = array();
 			foreach ( Rt_Access_Control::$modules as $key => $value ){
 
@@ -737,7 +734,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 			$settings = rt_biz_get_redux_settings();
 			add_submenu_page( self::$dashboard_slug, __( 'Offerings' ), __( 'Offerings' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Offerings::$offering_slug . '&post_type=' . rt_biz_get_contact_post_type() );
 			add_submenu_page( self::$dashboard_slug, __( 'Access Control' ), __( 'Access Control' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'admin' ), self::$access_control_slug, array( $rt_access_control, 'acl_settings_ui' ) );
-			add_submenu_page( self::$dashboard_slug, __( 'Departments' ), __( '--- Departments' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . RT_Departments::$slug . '&post_type=' . rt_biz_get_contact_post_type() );
+			add_submenu_page( self::$dashboard_slug, __( 'Teams' ), __( '--- Teams' ), rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . RT_Departments::$slug . '&post_type=' . rt_biz_get_contact_post_type() );
 			$contact_groups_label = apply_filters( 'rtbiz_contact_groups_menu_item_label', __( 'Contact Groups' ) );
 			add_submenu_page( self::$dashboard_slug, $contact_groups_label, '--- ' . $contact_groups_label, rt_biz_get_access_role_cap( RT_BIZ_TEXT_DOMAIN, 'editor' ), 'edit-tags.php?taxonomy=' . Rt_Contact::$user_category_taxonomy . '&post_type=' . rt_biz_get_contact_post_type() );
 		}

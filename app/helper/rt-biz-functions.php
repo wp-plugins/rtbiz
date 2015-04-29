@@ -645,6 +645,26 @@ function rt_biz_get_redux_settings() {
 	return $GLOBALS[ Rt_Biz_Setting::$biz_opt ];
 }
 
+function rt_biz_set_redux_setting( $key, $val ){
+	global $rt_biz_setttings;
+	$rt_biz_setttings->ReduxFramework->set( $key, $val );
+	$GLOBALS[ Rt_Biz_Setting::$biz_opt ] = get_option( Rt_Biz_Setting::$biz_opt, array() );
+}
+
+function rt_biz_get_offering_selection_setting(){
+	$return  = array();
+	$redux = rt_biz_get_redux_settings();
+
+	if ( ! empty( $redux['offering_plugin'] ) && is_array( $redux['offering_plugin'] ) ) {
+		foreach ( $redux['offering_plugin'] as $key => $val ) {
+			if ( ! empty( $val ) ) {
+				$return[] = $key;
+			}
+		}
+	}
+	return $return;
+}
+
 function rt_biz_is_primary_email_unique( $email, $postid = null ) {
 	global $rt_contact;
 	$meta_query_args = array(
@@ -771,7 +791,7 @@ function rt_biz_get_department_contacts( $department_id ) {
 	return $contacts;
 }
 
-function rt_biz_mailbox_setup_view( $module ){
+/*function rt_biz_mailbox_setup_view( $module ){
 	global $rt_MailBox ;
 	return $rt_MailBox->mailbox_view( $module );
 }
@@ -779,7 +799,7 @@ function rt_biz_mailbox_setup_view( $module ){
 function rt_biz_imap_setup_view(){
 	global $rt_MailBox ;
 	return $rt_MailBox->imap_view();
-}
+}*/
 
 function rt_biz_gravity_importer_view( $module ){
 	global $rt_importer;

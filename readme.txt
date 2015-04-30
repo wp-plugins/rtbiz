@@ -1,10 +1,10 @@
 === rtBiz ===
-Contributors:      rtcamp, rahul286, desaiuditd, faishal, dipesh.kakadiya, pareshradadiya, utkarshpatel
+Contributors:      rtcamp, rahul286, dipesh.kakadiya, utkarshpatel, desaiuditd, faishal, pareshradadiya
 Donate Link:       http://rtcamp.com/donate
 Tags:              contacts, companies, people management, business, email parsing, attributes, user groups, access control, acl, wordpress
 Requires at least: 4.1
 Tested up to:      4.1
-Stable tag:        1.2.15
+Stable tag:        1.2.16
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,6 +67,11 @@ Please refer to the documentation.
 7. Departments
 
 == Changelog ==
+
+= 1.2.16 =
+* mailbox Code improved
+* Bug fix
+
 = 1.2.15 =
 * mailbox Library updated
 * offering Library updated

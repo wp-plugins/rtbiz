@@ -4,7 +4,7 @@
   Plugin Name: rtBiz
   Plugin URI: http://rtcamp.com/rtbiz
   Description: WordPress for Business
-  Version: 1.2.16
+  Version: 1.2.17
   Author: rtCamp
   Author URI: http://rtcamp.com
   License: GPL
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RT_BIZ_VERSION' ) ) {
-	define( 'RT_BIZ_VERSION', '1.2.16' );
+	define( 'RT_BIZ_VERSION', '1.2.17' );
 }
 if ( ! defined( 'RT_BIZ_PLUGIN_FILE' ) ) {
 	define( 'RT_BIZ_PLUGIN_FILE', __FILE__ );
@@ -510,7 +510,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 					'prefix'    => RT_BIZ_TEXT_DOMAIN,
 					'version'   => $rt_biz_version,
 					'title'     => sprintf( '<h3>%s</h3>', esc_html__( 'Select Department' ) ),
-					'content'   => sprintf( '<p>%s</p>', esc_html__( 'Departments are the functional units within your organisation, to which employee belongs to. ‘Add New Department’ from here or from ‘Departments’ section in the left pane.' ) ),
+					'content'   => sprintf( '<p>%s</p>', esc_html__( 'Teams are the functional units within your organisation, to which employee belongs to. ‘Add New Department’ from here or from ‘Teams’ section in the left pane.' ) ),
 					'anchor_id' => '#postbox-container-1 #rt-departmentdiv',
 					'edge'      => 'right',
 					'align'     => 'left',
@@ -643,7 +643,7 @@ if ( ! class_exists( 'Rt_Biz' ) ) {
 					'prefix'    => RT_BIZ_TEXT_DOMAIN,
 					'version'   => $rt_biz_version,
 					'title'     => sprintf( '<h3>%s</h3>', esc_html__( 'Add this company.' ) ),
-					'content'   => sprintf( '<p>%s</p>', esc_html__( 'You can now start adding the departments and offering if not done as yet.' ) ),
+					'content'   => sprintf( '<p>%s</p>', esc_html__( 'You can now start adding the teams and offering if not done as yet.' ) ),
 					'anchor_id' => '#postbox-container-1 #publish',
 					'edge'      => 'right',
 					'align'     => 'left',

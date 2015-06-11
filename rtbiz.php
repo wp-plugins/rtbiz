@@ -9,14 +9,14 @@
  * that starts the plugin.
  *
  * @link              https://rtcamp.com/
- * @since             1.3.1
+ * @since             1.3
  * @package           rtbiz
  *
  * @wordpress-plugin
  * Plugin Name:       rtBiz
  * Plugin URI:        https://rtcamp.com/
  * Description:       WordPress for Business
- * Version:           1.3.1
+ * Version:           1.3.2
  * Author:            rtCamp
  * Author URI:        https://rtcamp.com/
  * License:           GPL-2.0+
@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RTBIZ_VERSION' ) ) {
-	define( 'RTBIZ_VERSION', '1.3.1' );
+	define( 'RTBIZ_VERSION', '1.3.2' );
 }
 
 if ( ! defined( 'RTBIZ_TEXT_DOMAIN' ) ) {

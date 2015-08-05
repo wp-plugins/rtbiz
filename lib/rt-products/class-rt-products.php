@@ -134,6 +134,8 @@ if ( ! class_exists( 'Rt_Products' ) ) {
 				'separate_items_with_commas' => __( 'Separate product with commas' ),
 				'add_or_remove_items' => __( 'Add or remove product' ),
 				'choose_from_most_used' => __( 'Choose from the most popular product' ),
+				'not_found' => __( 'No product found.' ) ,
+				'no_terms' => __( 'No product' ),
 			);
 		}
 
@@ -291,8 +293,8 @@ if ( ! class_exists( 'Rt_Products' ) ) {
 					break;
 				case 'product_count':
 					$posttypes = $this->post_types;
-					if ( isset( $_GET['post_type'] ) && in_array( $_GET['post_type'], $posttypes ) ) {
-						$posttypes = array( $_GET['post_type'] );
+					if ( isset( $_REQUEST['post_type'] ) && in_array( $_REQUEST['post_type'], $posttypes ) ) {
+						$posttypes = array( $_REQUEST['post_type'] );
 					}
 
 					foreach ( $posttypes as $posttype ) {

@@ -643,46 +643,62 @@ if ( ! class_exists( 'Rt_Mailbox' ) ) {
 			$result['status'] = false;
 
 			if ( ! empty( $obj_data['email'] ) && ! empty( $obj_data['password'] ) && ! empty( $obj_data['provider'] ) ) {
-				$email       = $obj_data['email'];
-				$password    = $obj_data['password'];
-				$email_data  = array(
-					'email'        => $email,
-					'mail_folders' => 'INBOX',
-				);
-				$email_type  = 'imap';
-				$module      = $obj_data['module'];
-				$imap_server = $obj_data['provider'];
-				$hdZendEmail = new Rt_Zend_Mail();
 
-				try {
-					if ( ! $hdZendEmail->try_imap_login( $email, rtmb_encrypt_decrypt( $password ), $email_type, $imap_server ) ) {
-						$result['error'] = 'Error: login failed. Please enter correct credential or enable IMAP in your mailbox';
-					} else {
-						if ( ! empty( $obj_data['mailboxid'] ) ) {
-							$mailboxid = $rt_mail_settings->update_user_google_ac( rtmb_encrypt_decrypt( $password ), $email, '', '', $email_type, $imap_server, $module, $obj_data['mailboxid'] );
-							if ( $mailboxid ) {
-								$mailboxid = $obj_data['mailboxid'];
-							}
-						} else {
-							$mailboxid = $rt_mail_settings->add_user_google_ac( rtmb_encrypt_decrypt( $password ), $email, maybe_serialize( $email_data ), '', $email_type, $imap_server, $module );
-							do_action( 'rt_mailbox_add_mailbox', $email, $module );
-						}
-						if ( ! empty( $mailboxid ) ) {
-							ob_start();
-							$this->render_list_mailbox_page( $module, $mailboxid );
-							$result['html_list'] = ob_get_clean();
-							$result['moduleid']  = $mailboxid;
-							$result['status']           = true;
+				$email       =  trim ( $obj_data['email'] );
+
+				$available_email = rtmb_get_module_mailbox_email( $email, $obj_data['module'] );
+
+				if ( empty ( $available_email ) ) {
+
+					$password    = $obj_data['password'];
+
+					$Imap_folder = 'INBOX';
+					if ( $obj_data['provider'] == 2 || $obj_data['provider'] == 3 ) {
+						$Imap_folder = 'Inbox';
+					}
+
+					$email_data  = array(
+						'email'        => $email,
+						'mail_folders' => $Imap_folder,
+					);
+
+					$email_type  = 'imap';
+					$module      = $obj_data['module'];
+					$imap_server = $obj_data['provider'];
+					$hdZendEmail = new Rt_Zend_Mail();
+
+					try {
+						if ( ! $hdZendEmail->try_imap_login( $email, rtmb_encrypt_decrypt( $password ), $email_type, $imap_server ) ) {
+							$result['error'] = 'Error: login failed. Please enter correct credential or enable IMAP in your mailbox';
 						} else {
 							if ( ! empty( $obj_data['mailboxid'] ) ) {
-								$result['error'] = 'Error: Mailbox configured not updated';
+								$mailboxid = $rt_mail_settings->update_user_google_ac( rtmb_encrypt_decrypt( $password ), $email, '', '', $email_type, $imap_server, $module, $obj_data['mailboxid'] );
+								if ( $mailboxid ) {
+									$mailboxid = $obj_data['mailboxid'];
+								}
 							} else {
-								$result['error'] = 'Error: Mailbox not configured';
+								$mailboxid = $rt_mail_settings->add_user_google_ac( rtmb_encrypt_decrypt( $password ), $email, maybe_serialize( $email_data ), '', $email_type, $imap_server, $module );
+								do_action( 'rt_mailbox_add_mailbox', $email, $module );
+							}
+							if ( ! empty( $mailboxid ) ) {
+								ob_start();
+								$this->render_list_mailbox_page( $module, $mailboxid );
+								$result['html_list'] = ob_get_clean();
+								$result['moduleid']  = $mailboxid;
+								$result['status']           = true;
+							} else {
+								if ( ! empty( $obj_data['mailboxid'] ) ) {
+									$result['error'] = 'Error: Mailbox configured not updated';
+								} else {
+									$result['error'] = 'Error: Mailbox not configured';
+								}
 							}
 						}
+					} catch ( Exception $e ) {
+						$result['error'] = 'Caught exception: ' . $e->getMessage();
 					}
-				} catch ( Exception $e ) {
-					$result['error'] = 'Caught exception: ' . $e->getMessage();
+				} else {
+					$result['error'] = 'Error: This Mail is already added in Mailbox';
 				}
 			} else {
 				$result['error'] = 'Error: Required mailbox field missing.';
@@ -747,6 +763,7 @@ if ( ! class_exists( 'Rt_Mailbox' ) ) {
 									<?php $hdZendEmail->render_folders_checkbox( $all_folders, $element_name = 'mail_folders[' . esc_attr( $email ) . ']', $values = $mail_folders, $data_str = 'data-email-id=' . $mailbox->id ); ?>
 								</div>
 							</div>
+							<?php do_action( 'rt_mailbox_assignee_ui', $mailbox->email_data, $module );?>
 							<div class="clear"></div>
 							<div class="rtmailbox-row">
 								<label></label>
@@ -804,6 +821,7 @@ if ( ! class_exists( 'Rt_Mailbox' ) ) {
 					if ( empty( $mail_folders[ $email ] ) ) {
 						$mail_folders[ $email ] = array();
 					}
+					$email_data = apply_filters( 'rt_mailbox_assignee_save', $email_data, $obj_data );
 					$email_data['mail_folders'] = implode( ',', array_filter( $mail_folders[ $email ] ) );
 					$rt_mail_settings->update_mail_acl( $email, null, maybe_serialize( $email_data ) );
 					$result['status']    = true;

@@ -157,7 +157,7 @@ if ( ! class_exists( 'Rtbiz_Teams' ) ) {
 							       id="<?php echo esc_attr( self::$slug ); ?>[email_address]"
 							       value="<?php echo esc_html( $this->get_team_meta( 'email_address' ) ); ?>"/>
 
-							<p class="description"><?php _e( 'Enter a email address for Team', 'rtcamp' ); ?></p>
+							<p class="description"><?php _e( 'Enter an email address for Team', 'rtcamp' ); ?></p>
 						</td>
 					</tr>
 					</tbody>
@@ -171,7 +171,7 @@ if ( ! class_exists( 'Rtbiz_Teams' ) ) {
 						<input type="text" name="<?php echo esc_attr( self::$slug ); ?>[email_address]"
 						       id="<?php echo esc_attr( self::$slug ); ?>[email_address]" value="">
 					</p>
-					<p class="description"><?php _e( 'Enter a email address for Team', 'rtcamp' ); ?></p>
+					<p class="description"><?php _e( 'Enter an email address for Team', 'rtcamp' ); ?></p>
 				</div>
 			<?php }
 		}
@@ -216,7 +216,9 @@ if ( ! class_exists( 'Rtbiz_Teams' ) ) {
 				case 'contacts':
 					$term = get_term( $term_id, self::$slug );
 					$contacts_count = count( rtbiz_get_team_contacts( $term_id ) );
-					echo '<a href="' . esc_url( admin_url( 'edit.php?post_type='.rtbiz_get_contact_post_type().'&' . self::$slug . '=' . $term->slug ) ) . '">' . $contacts_count . '</a>';
+					$module = '';
+					$module = apply_filters( 'rtbiz_current_module_name', $module );
+					echo '<a href="' . esc_url( admin_url( 'edit.php?post_type='.rtbiz_get_contact_post_type().'&contact_group=staff' . $module . '&' . self::$slug . '=' . $term->slug ) ) . '">' . $contacts_count . '</a>';
 					break;
 				case 'email_address';
 					$email_address = $this->get_team_meta( 'email_address', $term_id );
@@ -239,7 +241,7 @@ if ( ! class_exists( 'Rtbiz_Teams' ) ) {
 
 			unset( $columns['posts'], $columns['slug'] );
 
-			$columns['contacts']         = __( 'Contacts', RTBIZ_TEXT_DOMAIN );
+			$columns['contacts']         = __( 'Staff', RTBIZ_TEXT_DOMAIN );
 			//			$columns['color']         = __( 'Color', RTBIZ_TEXT_DOMAIN );
 			$columns['email_address'] = __( 'Email Address', RTBIZ_TEXT_DOMAIN );
 

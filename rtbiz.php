@@ -16,7 +16,7 @@
  * Plugin Name:       rtBiz
  * Plugin URI:        https://rtcamp.com/
  * Description:       WordPress for Business
- * Version:           1.3.6
+ * Version:           1.3.7
  * Author:            rtCamp
  * Author URI:        https://rtcamp.com/
  * License:           GPL-2.0+
@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'RTBIZ_VERSION' ) ) {
-	define( 'RTBIZ_VERSION', '1.3.6' );
+	define( 'RTBIZ_VERSION', '1.3.7' );
 }
 
 if ( ! defined( 'RTBIZ_TEXT_DOMAIN' ) ) {
@@ -103,4 +103,28 @@ require_once RTBIZ_PATH . 'includes/class-rtbiz.php';
 function run_rtbiz() {
 	$plugin = Rtbiz::instance();
 }
-run_rtbiz();
+
+if ( _rtbiz_php_version_check() ) {
+	run_rtbiz();
+}
+
+function _rtbiz_php_version_check(){
+	$php_version = phpversion();
+	if ( version_compare( $php_version ,'5.3', '<' ) ) {
+		// running older version do not load our plugins.
+		add_action( 'admin_notices','_rtbiz_running_older_php_version' );
+		add_action( 'admin_init','_rtbiz_deactive_self' );
+		return false;
+	}
+	return true;
+}
+
+function _rtbiz_running_older_php_version(){ ?>
+	<div class="error rtbiz-php-older-version">
+		<p><?php _e( 'You are running an older PHP version. Please upgrade to PHP <strong>5.3 or above</strong> to run rtBiz plugin.', RTBIZ_TEXT_DOMAIN ) ?></p>
+	</div> <?php
+}
+
+function _rtbiz_deactive_self(){
+	deactivate_plugins(plugin_basename(__FILE__));
+}
